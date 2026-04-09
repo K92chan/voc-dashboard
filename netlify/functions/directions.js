@@ -7,50 +7,45 @@ exports.handler = async (event) => {
     'X-NCP-APIGW-API-KEY': clientSecret
   };
 
-  // 경유지 배열로 분리 (빈값 제거)
   const 경유배열 = waypoints
     ? waypoints.split(':').map(w => w.trim()).filter(w => w && w.includes(','))
     : [];
 
-  console.log(`경유지 총 ${경유배열.length}개:`, 경유배열);
+  console.log('출발:', start);
+  console.log('도착:', goal);
+  console.log('경유지:', 경유배열);
 
-  // 시도 순서: VPC Dir15 → Classic Dir15 → VPC Dir5 → Classic Dir5
   const 시도목록 = [
-    { base: 'https://maps.apigw.ntruss.com',          api: 'map-direction-15', 최대: 15 },
-    { base: 'https://naveropenapi.apigw.ntruss.com',  api: 'map-direction-15', 최대: 15 },
-    { base: 'https://maps.apigw.ntruss.com',          api: 'map-direction',    최대: 5  },
-    { base: 'https://naveropenapi.apigw.ntruss.com',  api: 'map-direction',    최대: 5  },
+    { base: 'https://maps.apigw.ntruss.com',         api: 'map-direction-15', 최대: 15 },
+    { base: 'https://naveropenapi.apigw.ntruss.com', api: 'map-direction-15', 최대: 15 },
+    { base: 'https://maps.apigw.ntruss.com',         api: 'map-direction',    최대: 5  },
+    { base: 'https://naveropenapi.apigw.ntruss.com', api: 'map-direction',    최대: 5  },
   ];
 
   for (const { base, api, 최대 } of 시도목록) {
     try {
       const wp = 경유배열.slice(0, 최대).join(':');
+      // ⚠️ encodeURIComponent 제거 — 네이버 API는 raw 형식 필요
       let url = `${base}/${api}/v1/driving?start=${start}&goal=${goal}`;
-      if (wp) url += `&waypoints=${encodeURIComponent(wp)}`;
+      if (wp) url += `&waypoints=${wp}`;
       url += `&option=trafast`;
 
-      console.log(`시도: ${api} (경유 ${Math.min(경유배열.length, 최대)}개)`);
+      console.log(`[${api}] URL:`, url);
       const res = await fetch(url, { headers });
       const data = await res.json();
+      console.log(`[${api}] code:`, data.code, '| message:', data.message);
 
       if (data.code === 0 && data.route) {
-        console.log(`성공: ${api}`);
+        const 경로 = data.route.trafast?.[0] || data.route.traoptimal?.[0];
+        console.log('summary:', JSON.stringify(경로?.summary));
         return {
           statusCode: 200,
           headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify({
-            ...data,
-            _meta: {
-              사용경유수: Math.min(경유배열.length, 최대),
-              전체경유수: 경유배열.length,
-              api
-            }
-          })
+          body: JSON.stringify(data)
         };
       }
-      console.log(`실패 (${api}):`, data.code, data.message || data.error?.message);
     } catch(e) {
-      console.log(`오류 (${api}):`, e.message);
+      console.log(`[${api}] 오류:`, e.message);
     }
   }
 
