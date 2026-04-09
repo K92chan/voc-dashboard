@@ -1,58 +1,59 @@
 exports.handler = async (event) => {
   const { start, goal, waypoints } = JSON.parse(event.body);
-
   const clientId = 'nti3kkmh2c';
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
-
   const headers = {
     'X-NCP-APIGW-API-KEY-ID': clientId,
     'X-NCP-APIGW-API-KEY': clientSecret
   };
 
-  const wp15 = waypoints ? waypoints.split(':').slice(0, 15).join(':') : '';
-  const wp5  = waypoints ? waypoints.split(':').slice(0, 5).join(':')  : '';
+  // 경유지 배열로 분리 (빈값 제거)
+  const 경유배열 = waypoints
+    ? waypoints.split(':').map(w => w.trim()).filter(w => w && w.includes(','))
+    : [];
 
-  // 시도할 엔드포인트 목록 (VPC, Classic 둘 다 시도)
-  const 엔드포인트목록 = [
-    {
-      url: `https://maps.apigw.ntruss.com/map-direction-15/v1/driving?start=${start}&goal=${goal}${wp15 ? '&waypoints=' + wp15 : ''}&option=trafast`,
-      이름: 'VPC Directions15'
-    },
-    {
-      url: `https://maps.apigw.ntruss.com/map-direction/v1/driving?start=${start}&goal=${goal}${wp5 ? '&waypoints=' + wp5 : ''}&option=trafast`,
-      이름: 'VPC Directions5'
-    },
-    {
-      url: `https://naveropenapi.apigw.ntruss.com/map-direction-15/v1/driving?start=${start}&goal=${goal}${wp15 ? '&waypoints=' + wp15 : ''}&option=trafast`,
-      이름: 'Classic Directions15'
-    },
-    {
-      url: `https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start=${start}&goal=${goal}${wp5 ? '&waypoints=' + wp5 : ''}&option=trafast`,
-      이름: 'Classic Directions5'
-    }
+  console.log(`경유지 총 ${경유배열.length}개:`, 경유배열);
+
+  // 시도 순서: VPC Dir15 → Classic Dir15 → VPC Dir5 → Classic Dir5
+  const 시도목록 = [
+    { base: 'https://maps.apigw.ntruss.com',          api: 'map-direction-15', 최대: 15 },
+    { base: 'https://naveropenapi.apigw.ntruss.com',  api: 'map-direction-15', 최대: 15 },
+    { base: 'https://maps.apigw.ntruss.com',          api: 'map-direction',    최대: 5  },
+    { base: 'https://naveropenapi.apigw.ntruss.com',  api: 'map-direction',    최대: 5  },
   ];
 
-  for (const 엔드포인트 of 엔드포인트목록) {
+  for (const { base, api, 최대 } of 시도목록) {
     try {
-      console.log(`시도: ${엔드포인트.이름}`);
-      const res = await fetch(엔드포인트.url, { headers });
+      const wp = 경유배열.slice(0, 최대).join(':');
+      let url = `${base}/${api}/v1/driving?start=${start}&goal=${goal}`;
+      if (wp) url += `&waypoints=${encodeURIComponent(wp)}`;
+      url += `&option=trafast`;
+
+      console.log(`시도: ${api} (경유 ${Math.min(경유배열.length, 최대)}개)`);
+      const res = await fetch(url, { headers });
       const data = await res.json();
-      console.log(`응답 (${엔드포인트.이름}):`, JSON.stringify(data).substring(0, 200));
 
       if (data.code === 0 && data.route) {
-        console.log(`성공: ${엔드포인트.이름}`);
+        console.log(`성공: ${api}`);
         return {
           statusCode: 200,
           headers: { 'Access-Control-Allow-Origin': '*' },
-          body: JSON.stringify(data)
+          body: JSON.stringify({
+            ...data,
+            _meta: {
+              사용경유수: Math.min(경유배열.length, 최대),
+              전체경유수: 경유배열.length,
+              api
+            }
+          })
         };
       }
+      console.log(`실패 (${api}):`, data.code, data.message || data.error?.message);
     } catch(e) {
-      console.log(`오류 (${엔드포인트.이름}):`, e.message);
+      console.log(`오류 (${api}):`, e.message);
     }
   }
 
-  // 모두 실패
   return {
     statusCode: 200,
     headers: { 'Access-Control-Allow-Origin': '*' },
