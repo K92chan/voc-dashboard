@@ -11,6 +11,69 @@
       h1 { color: #333; }
       h2 { color: #333; margin-top: 40px; }
 
+      /* 로그인 화면 */
+      #로그인화면 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 80vh;
+      }
+      .로그인박스 {
+        background: white;
+        border-radius: 16px;
+        padding: 40px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        text-align: center;
+        width: 320px;
+      }
+      .로그인박스 h2 {
+        margin-top: 0;
+        margin-bottom: 24px;
+        color: #1a73e8;
+      }
+      .로그인박스 input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 16px;
+        margin-bottom: 12px;
+        box-sizing: border-box;
+      }
+      .로그인박스 button {
+        width: 100%;
+        padding: 12px;
+        background-color: #1a73e8;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .로그인박스 button:hover {
+        background-color: #1558b0;
+      }
+      #오류메시지 {
+        color: red;
+        font-size: 14px;
+        margin-top: 8px;
+        display: none;
+      }
+
+      /* 대시보드 */
+      #대시보드 { display: none; }
+
+      .로그아웃버튼 {
+        float: right;
+        padding: 8px 16px;
+        background-color: #e53935;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
       .카드묶음 {
         display: flex;
         gap: 16px;
@@ -35,7 +98,6 @@
         color: #888;
         margin-top: 8px;
       }
-
       table {
         width: 100%;
         border-collapse: collapse;
@@ -55,10 +117,7 @@
         text-align: center;
         border-bottom: 1px solid #eee;
       }
-      tr:nth-child(even) td {
-        background-color: #f9f9f9;
-      }
-
+      tr:nth-child(even) td { background-color: #f9f9f9; }
       .차트박스 {
         background: white;
         border-radius: 12px;
@@ -66,7 +125,6 @@
         margin-top: 12px;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       }
-
       #로딩 {
         text-align: center;
         padding: 40px;
@@ -77,128 +135,136 @@
   </head>
   <body>
 
-    <h1>📊 VOC 대시보드</h1>
-    <div id="로딩">⏳ 구글 시트에서 데이터 불러오는 중...</div>
-
-    <div id="내용" style="display:none">
-
-      <div class="카드묶음" id="카드묶음"></div>
-
-      <h2>📋 센터별 현황</h2>
-      <table>
-        <tr>
-          <th>물류센터</th>
-          <th>평균점수</th>
-          <th>총 건수</th>
-          <th>칭찬률</th>
-          <th>불만률</th>
-        </tr>
-        <tbody id="표내용"></tbody>
-      </table>
-
-      <h2>📈 월별 평균점수 추이</h2>
-      <div class="차트박스">
-        <canvas id="차트"></canvas>
+    <!-- 로그인 화면 -->
+    <div id="로그인화면">
+      <div class="로그인박스">
+        <h2>🔒 VOC 대시보드</h2>
+        <input type="password" id="비밀번호입력" placeholder="비밀번호를 입력하세요" />
+        <button onclick="로그인()">로그인</button>
+        <div id="오류메시지">❌ 비밀번호가 틀렸습니다</div>
       </div>
+    </div>
 
+    <!-- 대시보드 화면 -->
+    <div id="대시보드">
+      <button class="로그아웃버튼" onclick="로그아웃()">🔓 로그아웃</button>
+      <h1>📊 VOC 대시보드</h1>
+      <div id="로딩">⏳ 데이터 불러오는 중...</div>
+      <div id="내용" style="display:none">
+        <div class="카드묶음" id="카드묶음"></div>
+        <h2>📋 센터별 현황</h2>
+        <table>
+          <tr>
+            <th>물류센터</th>
+            <th>평균점수</th>
+            <th>총 건수</th>
+            <th>칭찬률</th>
+            <th>불만률</th>
+          </tr>
+          <tbody id="표내용"></tbody>
+        </table>
+        <h2>📊 센터별 평균점수</h2>
+        <div class="차트박스">
+          <canvas id="차트"></canvas>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
 
-      const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiJyg1h3jiSZ1-wFQJkWeHf5WHyIG7W6ir31F3FrxuDPo3nhFowxYPYBbxICFeGSHCfRVOPGyeHUAj/pub?gid=0&single=true&output=csv';
+      // ⭐ 비밀번호를 여기서 바꾸세요!
+      const 정답비밀번호 = '1234';
 
-      fetch(시트주소)
-        .then(response => response.text())
-        .then(csv => {
+      function 로그인() {
+        const 입력값 = document.getElementById('비밀번호입력').value;
+        if (입력값 === 정답비밀번호) {
+          document.getElementById('로그인화면').style.display = 'none';
+          document.getElementById('대시보드').style.display = 'block';
+          데이터불러오기();
+        } else {
+          document.getElementById('오류메시지').style.display = 'block';
+        }
+      }
 
-          // CSV를 줄 단위로 자르기
-          const 줄들 = csv.trim().split('\n');
-          const 헤더 = 줄들[0].split(',');
-          const 데이터 = [];
+      function 로그아웃() {
+        document.getElementById('대시보드').style.display = 'none';
+        document.getElementById('로그인화면').style.display = 'flex';
+        document.getElementById('비밀번호입력').value = '';
+        document.getElementById('오류메시지').style.display = 'none';
+      }
 
-          for (let i = 1; i < 줄들.length; i++) {
-            const 값들 = 줄들[i].split(',');
-            데이터.push({
-              센터명: 값들[0],
-              평균점수: parseFloat(값들[1]),
-              총건수: parseInt(값들[2]),
-              칭찬률: parseFloat(값들[3]),
-              불만률: parseFloat(값들[4])
-            });
-          }
+      // 엔터키로도 로그인 가능하게
+      document.getElementById('비밀번호입력').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') 로그인();
+      });
 
-          // 로딩 숨기고 내용 보이기
-          document.getElementById('로딩').style.display = 'none';
-          document.getElementById('내용').style.display = 'block';
+      function 데이터불러오기() {
+        const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiJyg1h3jiSZ1-wFQJkWeHf5WHyIG7W6ir31F3FrxuDPo3nhFowxYPYBbxICFeGSHCfRVOPGyeHUAj/pub?gid=0&single=true&output=csv';
 
-          // 카드 만들기 (전체 합계)
-          const 총건수합계 = 데이터.reduce((합, d) => 합 + d.총건수, 0);
-          const 평균점수평균 = (데이터.reduce((합, d) => 합 + d.평균점수, 0) / 데이터.length).toFixed(1);
-          const 칭찬평균 = (데이터.reduce((합, d) => 합 + d.칭찬률, 0) / 데이터.length).toFixed(1);
-          const 불만평균 = (데이터.reduce((합, d) => 합 + d.불만률, 0) / 데이터.length).toFixed(1);
-
-          document.getElementById('카드묶음').innerHTML = `
-            <div class="카드">
-              <div class="숫자">${총건수합계.toLocaleString()}</div>
-              <div class="설명">총 VOC 건수</div>
-            </div>
-            <div class="카드">
-              <div class="숫자">${평균점수평균}</div>
-              <div class="설명">평균 점수</div>
-            </div>
-            <div class="카드">
-              <div class="숫자">${칭찬평균}%</div>
-              <div class="설명">칭찬 비율</div>
-            </div>
-            <div class="카드">
-              <div class="숫자">${불만평균}%</div>
-              <div class="설명">불만 비율</div>
-            </div>
-          `;
-
-          // 표 만들기
-          let 표html = '';
-          데이터.forEach(d => {
-            표html += `
-              <tr>
-                <td>${d.센터명}</td>
-                <td style="font-weight:bold; color:${d.평균점수 >= 95 ? '#1a73e8' : '#e53935'}">${d.평균점수}</td>
-                <td>${d.총건수.toLocaleString()}</td>
-                <td style="color:green">${d.칭찬률}%</td>
-                <td style="color:red">${d.불만률}%</td>
-              </tr>
-            `;
-          });
-          document.getElementById('표내용').innerHTML = 표html;
-
-          // 차트 만들기
-          const 색깔 = ['#1a73e8','#e53935','#ff9800','#4caf50','#9c27b0','#00bcd4','#795548'];
-          const ctx = document.getElementById('차트');
-          new Chart(ctx, {
-            type: 'bar',
-            data: {
-              labels: 데이터.map(d => d.센터명),
-              datasets: [{
-                label: '평균점수',
-                data: 데이터.map(d => d.평균점수),
-                backgroundColor: 색깔,
-                borderRadius: 8
-              }]
-            },
-            options: {
-              scales: { y: { min: 88, max: 100 } },
-              plugins: {
-                title: { display: true, text: '센터별 평균점수 (100점 만점)' }
-              }
+        fetch(시트주소)
+          .then(response => response.text())
+          .then(csv => {
+            const 줄들 = csv.trim().split('\n');
+            const 데이터 = [];
+            for (let i = 1; i < 줄들.length; i++) {
+              const 값들 = 줄들[i].split(',');
+              데이터.push({
+                센터명: 값들[0],
+                평균점수: parseFloat(값들[1]),
+                총건수: parseInt(값들[2]),
+                칭찬률: parseFloat(값들[3]),
+                불만률: parseFloat(값들[4])
+              });
             }
+
+            document.getElementById('로딩').style.display = 'none';
+            document.getElementById('내용').style.display = 'block';
+
+            const 총건수합계 = 데이터.reduce((합, d) => 합 + d.총건수, 0);
+            const 평균점수평균 = (데이터.reduce((합, d) => 합 + d.평균점수, 0) / 데이터.length).toFixed(1);
+            const 칭찬평균 = (데이터.reduce((합, d) => 합 + d.칭찬률, 0) / 데이터.length).toFixed(1);
+            const 불만평균 = (데이터.reduce((합, d) => 합 + d.불만률, 0) / 데이터.length).toFixed(1);
+
+            document.getElementById('카드묶음').innerHTML = `
+              <div class="카드"><div class="숫자">${총건수합계.toLocaleString()}</div><div class="설명">총 VOC 건수</div></div>
+              <div class="카드"><div class="숫자">${평균점수평균}</div><div class="설명">평균 점수</div></div>
+              <div class="카드"><div class="숫자">${칭찬평균}%</div><div class="설명">칭찬 비율</div></div>
+              <div class="카드"><div class="숫자">${불만평균}%</div><div class="설명">불만 비율</div></div>
+            `;
+
+            let 표html = '';
+            데이터.forEach(d => {
+              표html += `
+                <tr>
+                  <td>${d.센터명}</td>
+                  <td style="font-weight:bold; color:${d.평균점수 >= 95 ? '#1a73e8' : '#e53935'}">${d.평균점수}</td>
+                  <td>${d.총건수.toLocaleString()}</td>
+                  <td style="color:green">${d.칭찬률}%</td>
+                  <td style="color:red">${d.불만률}%</td>
+                </tr>`;
+            });
+            document.getElementById('표내용').innerHTML = 표html;
+
+            const 색깔 = ['#1a73e8','#e53935','#ff9800','#4caf50','#9c27b0','#00bcd4','#795548'];
+            new Chart(document.getElementById('차트'), {
+              type: 'bar',
+              data: {
+                labels: 데이터.map(d => d.센터명),
+                datasets: [{
+                  label: '평균점수',
+                  data: 데이터.map(d => d.평균점수),
+                  backgroundColor: 색깔,
+                  borderRadius: 8
+                }]
+              },
+              options: {
+                scales: { y: { min: 88, max: 100 } },
+                plugins: { title: { display: true, text: '센터별 평균점수 (100점 만점)' } }
+              }
+            });
           });
-
-        })
-        .catch(err => {
-          document.getElementById('로딩').innerText = '❌ 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
-        });
-
+      }
     </script>
   </body>
 </html>
