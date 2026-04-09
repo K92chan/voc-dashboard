@@ -8,17 +8,15 @@
         font-family: 맑은고딕, sans-serif;
         padding: 20px;
       }
-
-      h1 {
-        color: #333;
-      }
+      h1 { color: #333; }
+      h2 { color: #333; margin-top: 40px; }
 
       .카드묶음 {
         display: flex;
         gap: 16px;
         margin-top: 20px;
+        flex-wrap: wrap;
       }
-
       .카드 {
         background-color: white;
         border-radius: 12px;
@@ -27,152 +25,180 @@
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         text-align: center;
       }
-
       .카드 .숫자 {
         font-size: 40px;
         font-weight: bold;
         color: #1a73e8;
       }
-
       .카드 .설명 {
         font-size: 14px;
         color: #888;
         margin-top: 8px;
       }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        margin-top: 12px;
+      }
+      th {
+        background-color: #1a73e8;
+        color: white;
+        padding: 14px;
+      }
+      td {
+        padding: 12px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+      }
+      tr:nth-child(even) td {
+        background-color: #f9f9f9;
+      }
+
+      .차트박스 {
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        margin-top: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+
+      #로딩 {
+        text-align: center;
+        padding: 40px;
+        font-size: 18px;
+        color: #888;
+      }
     </style>
   </head>
   <body>
+
     <h1>📊 VOC 대시보드</h1>
+    <div id="로딩">⏳ 구글 시트에서 데이터 불러오는 중...</div>
 
-    <div class="카드묶음">
-      <div class="카드">
-        <div class="숫자">2,385</div>
-        <div class="설명">총 VOC 건수</div>
-      </div>
-      <div class="카드">
-        <div class="숫자">94.6</div>
-        <div class="설명">평균 점수</div>
-      </div>
-      <div class="카드">
-        <div class="숫자">95.2%</div>
-        <div class="설명">칭찬 비율</div>
-      </div>
-      <div class="카드">
-        <div class="숫자">1.8%</div>
-        <div class="설명">불만 비율</div>
-      </div>
-    </div>
-<h2 style="margin-top: 40px; color: #333;">📋 센터별 현황</h2>
+    <div id="내용" style="display:none">
 
-    <table style="
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-top: 12px;
-    ">
-      <tr style="background-color: #1a73e8; color: white;">
-        <th style="padding: 14px;">물류센터</th>
-        <th style="padding: 14px;">평균점수</th>
-        <th style="padding: 14px;">총 건수</th>
-        <th style="padding: 14px;">칭찬률</th>
-        <th style="padding: 14px;">불만률</th>
-      </tr>
-      <tr style="text-align: center; border-bottom: 1px solid #eee;">
-        <td style="padding: 12px;">청원배송</td>
-        <td style="padding: 12px; font-weight: bold; color: #1a73e8;">95.6</td>
-        <td style="padding: 12px;">415</td>
-        <td style="padding: 12px; color: green;">95.9%</td>
-        <td style="padding: 12px; color: red;">0.7%</td>
-      </tr>
-      <tr style="text-align: center; border-bottom: 1px solid #eee; background: #f9f9f9;">
-        <td style="padding: 12px;">전주물류센타</td>
-        <td style="padding: 12px; font-weight: bold; color: #1a73e8;">95.0</td>
-        <td style="padding: 12px;">435</td>
-        <td style="padding: 12px; color: green;">96.7%</td>
-        <td style="padding: 12px; color: red;">1.0%</td>
-      </tr>
-      <tr style="text-align: center; border-bottom: 1px solid #eee;">
-        <td style="padding: 12px;">장유물류센타</td>
-        <td style="padding: 12px; font-weight: bold; color: #1a73e8;">94.1</td>
-        <td style="padding: 12px;">515</td>
-        <td style="padding: 12px; color: green;">94.9%</td>
-        <td style="padding: 12px; color: red;">2.2%</td>
-      </tr>
-      <tr style="text-align: center; border-bottom: 1px solid #eee; background: #f9f9f9;">
-        <td style="padding: 12px;">경기물류센타</td>
-        <td style="padding: 12px; font-weight: bold; color: #e53935;">92.9</td>
-        <td style="padding: 12px;">366</td>
-        <td style="padding: 12px; color: green;">93.4%</td>
-        <td style="padding: 12px; color: red;">2.7%</td>
-      </tr>
-    </table>
-<h2 style="margin-top: 40px; color: #333;">📈 월별 평균점수 추이</h2>
+      <div class="카드묶음" id="카드묶음"></div>
 
-    <div style="
-      background: white;
-      border-radius: 12px;
-      padding: 24px;
-      margin-top: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    ">
-      <canvas id="차트"></canvas>
+      <h2>📋 센터별 현황</h2>
+      <table>
+        <tr>
+          <th>물류센터</th>
+          <th>평균점수</th>
+          <th>총 건수</th>
+          <th>칭찬률</th>
+          <th>불만률</th>
+        </tr>
+        <tbody id="표내용"></tbody>
+      </table>
+
+      <h2>📈 월별 평균점수 추이</h2>
+      <div class="차트박스">
+        <canvas id="차트"></canvas>
+      </div>
+
     </div>
 
-    <!-- Chart.js 불러오기 (이게 소스를 가져오는 부분이에요) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script>
-      const ctx = document.getElementById('차트');
 
-      new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: ['1월', '2월', '3월'],
-          datasets: [
-            {
-              label: '경기물류센타',
-              data: [92.7, 92.3, 93.9],
-              borderColor: '#e53935',
-              tension: 0.3
-            },
-            {
-              label: '청원배송',
-              data: [95.5, 95.0, 96.7],
-              borderColor: '#1a73e8',
-              tension: 0.3
-            },
-            {
-              label: '장유물류센타',
-              data: [94.5, 94.9, 91.8],
-              borderColor: '#ff9800',
-              tension: 0.3
-            },
-            {
-              label: '전주물류센타',
-              data: [95.7, 93.7, 95.9],
-              borderColor: '#4caf50',
-              tension: 0.3
-            }
-          ]
-        },
-        options: {
-          plugins: {
-            title: {
-              display: true,
-              text: '센터별 월별 평균점수 (100점 만점)'
-            }
-          },
-          scales: {
-            y: {
-              min: 88,
-              max: 100
-            }
+      const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSiJyg1h3jiSZ1-wFQJkWeHf5WHyIG7W6ir31F3FrxuDPo3nhFowxYPYBbxICFeGSHCfRVOPGyeHUAj/pub?gid=0&single=true&output=csv';
+
+      fetch(시트주소)
+        .then(response => response.text())
+        .then(csv => {
+
+          // CSV를 줄 단위로 자르기
+          const 줄들 = csv.trim().split('\n');
+          const 헤더 = 줄들[0].split(',');
+          const 데이터 = [];
+
+          for (let i = 1; i < 줄들.length; i++) {
+            const 값들 = 줄들[i].split(',');
+            데이터.push({
+              센터명: 값들[0],
+              평균점수: parseFloat(값들[1]),
+              총건수: parseInt(값들[2]),
+              칭찬률: parseFloat(값들[3]),
+              불만률: parseFloat(값들[4])
+            });
           }
-        }
-      });
+
+          // 로딩 숨기고 내용 보이기
+          document.getElementById('로딩').style.display = 'none';
+          document.getElementById('내용').style.display = 'block';
+
+          // 카드 만들기 (전체 합계)
+          const 총건수합계 = 데이터.reduce((합, d) => 합 + d.총건수, 0);
+          const 평균점수평균 = (데이터.reduce((합, d) => 합 + d.평균점수, 0) / 데이터.length).toFixed(1);
+          const 칭찬평균 = (데이터.reduce((합, d) => 합 + d.칭찬률, 0) / 데이터.length).toFixed(1);
+          const 불만평균 = (데이터.reduce((합, d) => 합 + d.불만률, 0) / 데이터.length).toFixed(1);
+
+          document.getElementById('카드묶음').innerHTML = `
+            <div class="카드">
+              <div class="숫자">${총건수합계.toLocaleString()}</div>
+              <div class="설명">총 VOC 건수</div>
+            </div>
+            <div class="카드">
+              <div class="숫자">${평균점수평균}</div>
+              <div class="설명">평균 점수</div>
+            </div>
+            <div class="카드">
+              <div class="숫자">${칭찬평균}%</div>
+              <div class="설명">칭찬 비율</div>
+            </div>
+            <div class="카드">
+              <div class="숫자">${불만평균}%</div>
+              <div class="설명">불만 비율</div>
+            </div>
+          `;
+
+          // 표 만들기
+          let 표html = '';
+          데이터.forEach(d => {
+            표html += `
+              <tr>
+                <td>${d.센터명}</td>
+                <td style="font-weight:bold; color:${d.평균점수 >= 95 ? '#1a73e8' : '#e53935'}">${d.평균점수}</td>
+                <td>${d.총건수.toLocaleString()}</td>
+                <td style="color:green">${d.칭찬률}%</td>
+                <td style="color:red">${d.불만률}%</td>
+              </tr>
+            `;
+          });
+          document.getElementById('표내용').innerHTML = 표html;
+
+          // 차트 만들기
+          const 색깔 = ['#1a73e8','#e53935','#ff9800','#4caf50','#9c27b0','#00bcd4','#795548'];
+          const ctx = document.getElementById('차트');
+          new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: 데이터.map(d => d.센터명),
+              datasets: [{
+                label: '평균점수',
+                data: 데이터.map(d => d.평균점수),
+                backgroundColor: 색깔,
+                borderRadius: 8
+              }]
+            },
+            options: {
+              scales: { y: { min: 88, max: 100 } },
+              plugins: {
+                title: { display: true, text: '센터별 평균점수 (100점 만점)' }
+              }
+            }
+          });
+
+        })
+        .catch(err => {
+          document.getElementById('로딩').innerText = '❌ 데이터를 불러오지 못했어요. 잠시 후 다시 시도해주세요.';
+        });
+
     </script>
   </body>
 </html>
