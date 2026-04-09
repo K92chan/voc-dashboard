@@ -285,3 +285,116 @@ async function 필터변경() {
   document.getElementById('카드거리').textContent = 행.거리km ? Number(행.거리km).toFixed(1) : '-';
   document.getElementById('카드시간').textContent = 행.시간분 || '-';
   document.getElementById('카드건수').textContent = 행.총건수 || '-';
+  document.getElementById('카드실패').textContent = 행.실패건 || '0';
+  document.getElementById('카드유류비').textContent = 숫자포맷(행.유류비);
+  document.getElementById('카드톨비').textContent = 숫자포맷(행.톨비);
+  document.getElementById('카드속도').textContent = 행.평균속도 || '-';
+
+  // 마커 초기화
+  마커들.forEach(m => m.setMap(null));
+  폴리라인들.forEach(p => p.setMap(null));
+  마커들 = []; 폴리라인들 = [];
+
+  const 시작 = 좌표파싱(행.시작좌표원본);
+  const 종료 = 좌표파싱(행.종료좌표원본);
+  if (!시작 || !종료) return;
+
+  const 경유좌표들 = 행.경유목록
+    .map(s => 좌표파싱(s))
+    .filter(c => c !== null);
+
+  // 경유지 목록 표시
+  let 목록html = '';
+
+  // 출발 마커
+  마커찍기(시작, '출발', '🟢', '#2e7d32');
+  목록html += `<div class="경유지아이템">
+    <div class="뱃지 출발">출</div>
+    <div><b>출발지</b><br><span style="color:#888;font-size:12px">${행.시작좌표원본}</span></div>
+  </div>`;
+
+  // 경유 마커
+  경유좌표들.forEach((좌표, idx) => {
+    마커찍기(좌표, idx + 1, '🔵', '#1a73e8');
+    목록html += `<div class="경유지아이템">
+      <div class="뱃지 경유">${idx + 1}</div>
+      <div><b>${idx + 1}번째 경유지</b><br><span style="color:#888;font-size:12px">${행.경유목록[idx]}</span></div>
+    </div>`;
+  });
+
+  // 도착 마커
+  마커찍기(종료, '도착', '🔴', '#e53935');
+  목록html += `<div class="경유지아이템">
+    <div class="뱃지 도착">착</div>
+    <div><b>도착지</b><br><span style="color:#888;font-size:12px">${행.종료좌표원본}</span></div>
+  </div>`;
+
+  document.getElementById('경유지목록내용').innerHTML = 목록html;
+
+  // 지도 범위 조정
+  const 모든좌표 = [시작, ...경유좌표들, 종료];
+  const 범위 = new naver.maps.LatLngBounds(
+    new naver.maps.LatLng(시작.lat, 시작.lng),
+    new naver.maps.LatLng(시작.lat, 시작.lng)
+  );
+  모든좌표.forEach(c => 범위.extend(new naver.maps.LatLng(c.lat, c.lng)));
+  지도객체.fitBounds(범위, { padding: 80 });
+
+  // 실제 도로 경로
+  document.getElementById('로딩바').style.display = 'block';
+  await 경로그리기(행.시작좌표원본, 행.종료좌표원본, 행.경유목록);
+  document.getElementById('로딩바').style.display = 'none';
+}
+
+function 마커찍기(좌표, 라벨, 이모지, 색) {
+  const 내용 = typeof 라벨 === 'number'
+    ? `<div style="background:${색};color:white;border-radius:50%;width:28px;height:28px;line-height:28px;text-align:center;font-weight:bold;font-size:12px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)">${라벨}</div>`
+    : `<div style="background:${색};color:white;border-radius:20px;padding:3px 8px;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);white-space:nowrap">${라벨}</div>`;
+
+  const 마커 = new naver.maps.Marker({
+    position: new naver.maps.LatLng(좌표.lat, 좌표.lng),
+    map: 지도객체,
+    icon: {
+      content: 내용,
+      anchor: new naver.maps.Point(14, 14)
+    }
+  });
+  마커들.push(마커);
+}
+
+async function 경로그리기(시작원본, 종료원본, 경유목록) {
+  // 경위도 형식 변환: "lng,lat" → 그대로 사용 (네이버 API 형식과 동일)
+  // 경유지 15개 제한
+  const 경유지문자열 = 경유목록.slice(0, 15).join(':');
+
+  try {
+    const res = await fetch('/.netlify/functions/directions', {
+      method: 'POST',
+      body: JSON.stringify({
+        start: 시작원본,
+        goal: 종료원본,
+        waypoints: 경유지문자열 || undefined
+      })
+    });
+    const data = await res.json();
+    const 경로 = data.route?.trafast?.[0]?.path || data.route?.traoptimal?.[0]?.path;
+
+    if (경로) {
+      const 좌표들 = 경로.map(p => new naver.maps.LatLng(p[1], p[0]));
+      const 선 = new naver.maps.Polyline({
+        path: 좌표들,
+        map: 지도객체,
+        strokeColor: '#1a73e8',
+        strokeWeight: 5,
+        strokeOpacity: 0.8
+      });
+      폴리라인들.push(선);
+    }
+  } catch(e) {
+    console.log('경로 오류:', e);
+  }
+}
+
+</script>
+</body>
+</html>
