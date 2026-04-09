@@ -1,9 +1,11 @@
 exports.handler = async (event) => {
   const { start, goal, waypoints } = JSON.parse(event.body);
-  const clientId = process.env.NAVER_CLIENT_ID;
+
+  // Client ID는 공개값이라 직접 입력, Secret만 환경변수로 보호
+  const clientId = 'nti3kkmh2c';
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
 
-  // Directions 15 (최대 15개 경유지) 먼저 시도
+  // Directions 15 먼저 시도
   let url = `https://naveropenapi.apigw.ntruss.com/map-direction-15/v1/driving?start=${start}&goal=${goal}`;
   if (waypoints) url += `&waypoints=${waypoints}`;
   url += `&option=trafast`;
@@ -17,7 +19,7 @@ exports.handler = async (event) => {
     });
     const data = await res.json();
 
-    // Directions 15 안되면 Directions 5로 재시도 (경유지 5개로 축소)
+    // Directions 15 실패시 Directions 5로 재시도
     if (data.code !== 0) {
       const wp5 = waypoints ? waypoints.split(':').slice(0, 5).join(':') : '';
       let url5 = `https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving?start=${start}&goal=${goal}`;
