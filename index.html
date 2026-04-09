@@ -328,7 +328,7 @@ async function 경로계산(행) {
       body: JSON.stringify({
         start: 행.시작,
         goal: 행.종료,
-        waypoints: 행.경유목록.length > 0 ? 행.경유목록.join(':') : undefined
+        waypoints: 행.경유목록.length > 0 ? 행.경유목록.join('|') : undefined
       })
     });
     const data = await res.json();
