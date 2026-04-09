@@ -1,302 +1,287 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>기사 운행기록 대시보드</title>
+  <title>CSM 운행경로 대시보드</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background: #f0f2f5;
       font-family: 맑은고딕, sans-serif;
-      margin: 0; padding: 20px;
+      padding: 20px;
     }
-    h1 { color: #333; margin-bottom: 4px; font-size: 24px; }
-    .부제 { color: #888; font-size: 14px; margin-bottom: 20px; }
+    h1 { color: #333; font-size: 22px; margin-bottom: 4px; }
+    .부제 { color: #888; font-size: 13px; margin-bottom: 16px; }
 
-    .기사버튼묶음 {
-      display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px;
+    /* 필터 영역 */
+    .필터영역 {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      flex-wrap: wrap;
     }
-    .기사버튼 {
-      padding: 8px 18px;
-      border: 2px solid #1a73e8;
-      border-radius: 20px;
-      background: white; color: #1a73e8;
-      cursor: pointer; font-size: 14px;
-      transition: all 0.2s;
+    .필터영역 label { font-size: 13px; color: #555; font-weight: bold; }
+    .필터영역 select, .필터영역 input {
+      padding: 7px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: 맑은고딕, sans-serif;
     }
-    .기사버튼.선택됨 { background: #1a73e8; color: white; }
 
+    /* 카드 */
     .카드묶음 {
-      display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
     }
     .카드 {
-      background: white; border-radius: 12px;
-      padding: 18px 24px; min-width: 150px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;
-    }
-    .카드 .숫자 { font-size: 28px; font-weight: bold; color: #1a73e8; }
-    .카드 .설명 { font-size: 13px; color: #888; margin-top: 6px; }
-
-    #지도 {
-      width: 100%; height: 500px;
+      background: white;
       border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
+      padding: 14px 18px;
+      min-width: 120px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      text-align: center;
+      flex: 1;
+    }
+    .카드 .숫자 { font-size: 24px; font-weight: bold; color: #1a73e8; }
+    .카드 .설명 { font-size: 12px; color: #888; margin-top: 4px; }
+    .카드.빨강 .숫자 { color: #e53935; }
+    .카드.초록 .숫자 { color: #2e7d32; }
+    .카드.주황 .숫자 { color: #e65100; }
+
+    /* 지도 */
+    #지도 {
+      width: 100%;
+      height: 500px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
     }
 
-    .경로로딩 {
-      text-align: center; padding: 12px;
-      background: #e8f0fe; border-radius: 8px;
-      color: #1a73e8; font-size: 14px;
-      margin-bottom: 12px; display: none;
+    .로딩바 {
+      background: #e8f0fe;
+      border-radius: 8px;
+      padding: 10px 16px;
+      color: #1a73e8;
+      font-size: 13px;
+      margin-bottom: 12px;
+      display: none;
+      text-align: center;
     }
 
-    table {
-      width: 100%; border-collapse: collapse;
-      background: white; border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    /* 경유지 목록 */
+    .경유지목록 {
+      background: white;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    th {
-      background: #1a73e8; color: white;
-      padding: 12px; font-size: 14px;
+    .경유지목록 h3 {
+      font-size: 15px;
+      color: #333;
+      margin-bottom: 12px;
     }
-    td {
-      padding: 10px 12px; text-align: center;
-      border-bottom: 1px solid #eee; font-size: 14px;
+    .경유지아이템 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 13px;
     }
-    td.주소셀 { text-align: left; }
-    tr:nth-child(even) td { background: #f9f9f9; }
+    .경유지아이템:last-child { border-bottom: none; }
     .뱃지 {
-      display: inline-block;
-      background: #1a73e8; color: white;
-      border-radius: 50%; width: 26px; height: 26px;
-      line-height: 26px; font-size: 12px; font-weight: bold;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: bold; font-size: 12px; color: white;
+      flex-shrink: 0;
     }
-    .상태완료 { color: green; font-weight: bold; }
+    .뱃지.출발 { background: #2e7d32; }
+    .뱃지.경유 { background: #1a73e8; }
+    .뱃지.도착 { background: #e53935; }
+
+    #안내메시지 {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 15px;
+    }
   </style>
 </head>
 <body>
 
-<h1>🚗 기사 운행기록 대시보드</h1>
-<p class="부제">기사를 선택하면 실제 도로 경로와 운행기록을 확인할 수 있어요</p>
+<h1>🚗 CSM 운행경로 대시보드</h1>
+<p class="부제">날짜와 기사를 선택하면 실제 도로 경로를 확인할 수 있어요</p>
 
-<div class="기사버튼묶음" id="기사버튼묶음">
-  <div style="color:#888; font-size:14px; padding:8px">⏳ 데이터 불러오는 중...</div>
+<div class="필터영역">
+  <div>
+    <label>📅 날짜</label><br>
+    <select id="날짜선택" onchange="필터변경()">
+      <option>불러오는 중...</option>
+    </select>
+  </div>
+  <div>
+    <label>👤 기사</label><br>
+    <select id="기사선택" onchange="필터변경()">
+      <option>날짜를 먼저 선택하세요</option>
+    </select>
+  </div>
 </div>
 
 <div class="카드묶음">
-  <div class="카드"><div class="숫자" id="카드방문">-</div><div class="설명">총 방문지</div></div>
-  <div class="카드"><div class="숫자" id="카드건수">-</div><div class="설명">총 배송건수</div></div>
-  <div class="카드"><div class="숫자" id="카드시작">-</div><div class="설명">첫 완료시간</div></div>
-  <div class="카드"><div class="숫자" id="카드종료">-</div><div class="설명">마지막 완료</div></div>
+  <div class="카드"><div class="숫자" id="카드거리">-</div><div class="설명">운행거리(km)</div></div>
+  <div class="카드"><div class="숫자" id="카드시간">-</div><div class="설명">운행시간(분)</div></div>
+  <div class="카드"><div class="숫자" id="카드건수">-</div><div class="설명">총 건수</div></div>
+  <div class="카드 빨강"><div class="숫자" id="카드실패">-</div><div class="설명">실패 건</div></div>
+  <div class="카드 주황"><div class="숫자" id="카드유류비">-</div><div class="설명">유류비(원)</div></div>
+  <div class="카드 주황"><div class="숫자" id="카드톨비">-</div><div class="설명">톨비(원)</div></div>
+  <div class="카드 초록"><div class="숫자" id="카드속도">-</div><div class="설명">평균속도(km/h)</div></div>
 </div>
 
-<div class="경로로딩" id="경로로딩">🔍 실제 도로 경로 계산 중...</div>
+<div class="로딩바" id="로딩바">🔍 실제 도로 경로 계산 중... 잠시만 기다려주세요</div>
 <div id="지도"></div>
 
-<table>
-  <thead>
-    <tr>
-      <th>순번</th>
-      <th>주소</th>
-      <th>완료시간</th>
-      <th>배송건수</th>
-      <th>상태</th>
-    </tr>
-  </thead>
-  <tbody id="표내용"></tbody>
-</table>
+<div class="경유지목록">
+  <h3>📍 경유지 목록</h3>
+  <div id="경유지목록내용">
+    <div id="안내메시지">위에서 날짜와 기사를 선택해주세요</div>
+  </div>
+</div>
 
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=nti3kkmh2c"></script>
 <script>
-  const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTs6k1Ky8Hdnrl2U5A242Vg6ZqBaQSrLGkDr2xf_yMuMflYc-dD_2-v-2wRmIsip32W087DXCx4ZRzu/pub?gid=0&single=true&output=csv';
 
-  let 전체데이터 = [];
-  let 지도객체 = null;
-  let 마커들 = [];
-  let 폴리라인들 = [];
+const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTs6k1Ky8Hdnrl2U5A242Vg6ZqBaQSrLGkDr2xf_yMuMflYc-dD_2-v-2wRmIsip32W087DXCx4ZRzu/pub?gid=0&single=true&output=csv';
 
-  // 시간 포맷 변환 (91918 → 09:19)
-  function 시간변환(t) {
-    if (!t || t === '0' || t === 0) return '-';
-    const s = String(Math.round(Number(t))).padStart(6, '0');
-    return s.substr(0, 2) + ':' + s.substr(2, 2);
-  }
+let 전체데이터 = [];
+let 지도객체 = null;
+let 마커들 = [];
+let 폴리라인들 = [];
 
-  // 데이터 불러오기
-  fetch(시트주소)
-    .then(r => r.text())
-    .then(csv => {
-      const 줄들 = csv.trim().split('\n');
-      for (let i = 1; i < 줄들.length; i++) {
-        const v = 줄들[i].split(',');
-        if (v.length < 10) continue;
-        전체데이터.push({
-          배송일: v[0]?.trim(),
-          기사ID: v[1]?.trim(),
-          기사명: v[2]?.trim(),
-          순번: parseInt(v[3]) || i,
-          완료시간: v[4]?.trim(),
-          건수: parseInt(v[6]) || 1,
-          주소: v[7]?.trim(),
-          위도: parseFloat(v[9]),
-          경도: parseFloat(v[10]),
-          상태명: v[20]?.trim() || '완료'
-        });
-      }
-
-      // 기사 목록
-      const 기사목록 = [...new Set(전체데이터.map(d => d.기사명))];
-      const 버튼묶음 = document.getElementById('기사버튼묶음');
-      버튼묶음.innerHTML = '';
-
-      기사목록.forEach((기사, idx) => {
-        const btn = document.createElement('button');
-        btn.className = '기사버튼' + (idx === 0 ? ' 선택됨' : '');
-        btn.textContent = '👤 ' + 기사;
-        btn.onclick = () => {
-          document.querySelectorAll('.기사버튼').forEach(b => b.classList.remove('선택됨'));
-          btn.classList.add('선택됨');
-          기사선택(기사);
-        };
-        버튼묶음.appendChild(btn);
-      });
-
-      // 지도 초기화
-      지도객체 = new naver.maps.Map('지도', {
-        zoom: 10,
-        center: new naver.maps.LatLng(36.0, 127.5)
-      });
-
-      if (기사목록.length > 0) 기사선택(기사목록[0]);
-    });
-
-  async function 기사선택(기사명) {
-    const 데이터 = 전체데이터
-      .filter(d => d.기사명 === 기사명)
-      .sort((a, b) => a.순번 - b.순번);
-
-    // 카드 업데이트
-    const 유효데이터 = 데이터.filter(d => d.완료시간 && d.완료시간 !== '0');
-    const 총건수 = 데이터.reduce((합, d) => 합 + d.건수, 0);
-    document.getElementById('카드방문').textContent = 데이터.length + '곳';
-    document.getElementById('카드건수').textContent = 총건수 + '건';
-    document.getElementById('카드시작').textContent = 유효데이터.length > 0 ? 시간변환(유효데이터[0].완료시간) : '-';
-    document.getElementById('카드종료').textContent = 유효데이터.length > 0 ? 시간변환(유효데이터[유효데이터.length-1].완료시간) : '-';
-
-    // 기존 마커/경로 제거
-    마커들.forEach(m => m.setMap(null));
-    폴리라인들.forEach(p => p.setMap(null));
-    마커들 = []; 폴리라인들 = [];
-
-    // 마커 찍기
-    const 좌표들 = [];
-    데이터.forEach(d => {
-      if (!d.위도 || !d.경도) return;
-      const pos = new naver.maps.LatLng(d.위도, d.경도);
-      좌표들.push({ pos, data: d });
-
-      const 마커 = new naver.maps.Marker({
-        position: pos,
-        map: 지도객체,
-        icon: {
-          content: `<div style="
-            background:#1a73e8; color:white;
-            border-radius:50%; width:30px; height:30px;
-            line-height:30px; text-align:center;
-            font-weight:bold; font-size:13px;
-            border:2px solid white;
-            box-shadow:0 2px 6px rgba(0,0,0,0.3);
-          ">${d.순번}</div>`,
-          anchor: new naver.maps.Point(15, 15)
-        }
-      });
-
-      const 정보창 = new naver.maps.InfoWindow({
-        content: `<div style="padding:10px;font-size:13px;font-family:맑은고딕;min-width:200px">
-          <b>${d.순번}번째 방문</b><br>
-          📍 ${d.주소}<br>
-          🕐 완료: ${시간변환(d.완료시간)}<br>
-          📦 배송: ${d.건수}건
-        </div>`
-      });
-
-      naver.maps.Event.addListener(마커, 'click', () => {
-        정보창.open(지도객체, 마커);
-      });
-      마커들.push(마커);
-    });
-
-    // 지도 범위 조정
-    if (좌표들.length > 0) {
-      const 범위 = new naver.maps.LatLngBounds(좌표들[0].pos, 좌표들[0].pos);
-      좌표들.forEach(c => 범위.extend(c.pos));
-      지도객체.fitBounds(범위, { padding: 80 });
-    }
-
-    // 표 업데이트
-    let html = '';
-    데이터.forEach(d => {
-      html += `<tr>
-        <td><span class="뱃지">${d.순번}</span></td>
-        <td class="주소셀">${d.주소}</td>
-        <td>${시간변환(d.완료시간)}</td>
-        <td>${d.건수}건</td>
-        <td class="상태완료">${d.상태명}</td>
-      </tr>`;
-    });
-    document.getElementById('표내용').innerHTML = html;
-
-    // 실제 도로 경로 그리기
-    if (좌표들.length >= 2) {
-      document.getElementById('경로로딩').style.display = 'block';
-      await 실제경로그리기(좌표들);
-      document.getElementById('경로로딩').style.display = 'none';
-    }
-  }
-
-  async function 실제경로그리기(좌표들) {
-    // 네이버 Directions API는 최대 5개 경유지
-    // 여러 구간으로 나눠서 요청
-    const 청크크기 = 6; // 출발 + 경유지5개 + 도착
-
-    for (let i = 0; i < 좌표들.length - 1; i += 청크크기 - 1) {
-      const 구간 = 좌표들.slice(i, i + 청크크기);
-      if (구간.length < 2) break;
-
-      const start = `${구간[0].pos.lng()},${구간[0].pos.lat()}`;
-      const goal = `${구간[구간.length-1].pos.lng()},${구간[구간.length-1].pos.lat()}`;
-      const waypoints = 구간.slice(1, -1)
-        .map(c => `${c.pos.lng()},${c.pos.lat()}`)
-        .join(':');
-
-      try {
-        const res = await fetch('/.netlify/functions/directions', {
-          method: 'POST',
-          body: JSON.stringify({ start, goal, waypoints: waypoints || undefined })
-        });
-        const data = await res.json();
-
-        if (data.route?.trafast?.[0]?.path) {
-          const 경로좌표 = data.route.trafast[0].path.map(p =>
-            new naver.maps.LatLng(p[1], p[0])
-          );
-          const 선 = new naver.maps.Polyline({
-            path: 경로좌표,
-            map: 지도객체,
-            strokeColor: '#1a73e8',
-            strokeWeight: 4,
-            strokeOpacity: 0.8
-          });
-          폴리라인들.push(선);
-        }
-      } catch(e) {
-        console.log('경로 요청 실패:', e);
+// CSV 파서 (따옴표 안의 쉼표 처리)
+function CSV파싱(text) {
+  const rows = [];
+  const lines = text.trim().split('\n');
+  for (const line of lines) {
+    const row = [];
+    let inQuote = false;
+    let cell = '';
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        inQuote = !inQuote;
+      } else if (ch === ',' && !inQuote) {
+        row.push(cell.trim());
+        cell = '';
+      } else {
+        cell += ch;
       }
     }
+    row.push(cell.trim());
+    rows.push(row);
   }
-</script>
-</body>
-</html>
+  return rows;
+}
+
+// 경위도 파싱 (경도,위도 형식)
+function 좌표파싱(str) {
+  if (!str || str.trim() === '') return null;
+  const parts = str.trim().split(',');
+  if (parts.length < 2) return null;
+  const lng = parseFloat(parts[0]);
+  const lat = parseFloat(parts[1]);
+  if (isNaN(lng) || isNaN(lat)) return null;
+  return { lat, lng };
+}
+
+// 숫자 포맷
+function 숫자포맷(n) {
+  if (!n) return '-';
+  return Number(n).toLocaleString();
+}
+
+// 데이터 불러오기
+fetch(시트주소)
+  .then(r => r.text())
+  .then(csv => {
+    const rows = CSV파싱(csv);
+    const 헤더 = rows[0];
+
+    for (let i = 1; i < rows.length; i++) {
+      const v = rows[i];
+      if (!v[0]) continue;
+
+      const 경유원본 = v[15] || '';
+      const 경유목록 = 경유원본
+        ? 경유원본.split('|').map(s => s.trim()).filter(s => s)
+        : [];
+
+      전체데이터.push({
+        일자: v[0],
+        기사코드: v[1],
+        기사명: v[2],
+        부서명: v[4],
+        배송처명: v[6],
+        중량명: v[9],
+        연비: v[12],
+        시작좌표원본: v[13],
+        종료좌표원본: v[14],
+        경유목록,          // ["lng,lat", "lng,lat", ...]
+        총건수: v[16],
+        실패건: v[17] || '0',
+        응답상태: v[18],
+        거리km: v[20],
+        시간분: v[21],
+        유류비: v[22],
+        톨비: v[23],
+        평균속도: v[24]
+      });
+    }
+
+    // 날짜 목록
+    const 날짜목록 = [...new Set(전체데이터.map(d => d.일자))].sort();
+    const 날짜선택 = document.getElementById('날짜선택');
+    날짜선택.innerHTML = 날짜목록.map(d => `<option value="${d}">${d}</option>`).join('');
+
+    // 지도 초기화
+    지도객체 = new naver.maps.Map('지도', {
+      zoom: 10,
+      center: new naver.maps.LatLng(36.5, 127.5)
+    });
+
+    날짜변경();
+  })
+  .catch(err => {
+    document.getElementById('안내메시지').textContent = '❌ 데이터를 불러오지 못했어요.';
+  });
+
+function 날짜변경() {
+  const 날짜 = document.getElementById('날짜선택').value;
+  const 해당데이터 = 전체데이터.filter(d => d.일자 === 날짜);
+  const 기사목록 = [...new Set(해당데이터.map(d => d.기사명))];
+  const 기사선택 = document.getElementById('기사선택');
+  기사선택.innerHTML = 기사목록.map(g => `<option value="${g}">${g}</option>`).join('');
+  필터변경();
+}
+
+document.getElementById('날짜선택').addEventListener('change', 날짜변경);
+
+async function 필터변경() {
+  const 날짜 = document.getElementById('날짜선택').value;
+  const 기사 = document.getElementById('기사선택').value;
+  const 행 = 전체데이터.find(d => d.일자 === 날짜 && d.기사명 === 기사);
+  if (!행) return;
+
+  // 카드 업데이트
+  document.getElementById('카드거리').textContent = 행.거리km ? Number(행.거리km).toFixed(1) : '-';
+  document.getElementById('카드시간').textContent = 행.시간분 || '-';
+  document.getElementById('카드건수').textContent = 행.총건수 || '-';
