@@ -332,10 +332,11 @@ async function 경로계산(행) {
       })
     });
     const data = await res.json();
-    const 경로 = data.route?.trafast?.[0] || data.route?.traoptimal?.[0];
+    console.log('directions 응답:', JSON.stringify(data).substring(0, 300));
 
+    const 경로 = data.route?.trafast?.[0] || data.route?.traoptimal?.[0];
     if (!경로?.path) {
-      console.log('경로 없음:', JSON.stringify(data).substring(0, 200));
+      console.log('경로 없음');
       ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
         .forEach(id => document.getElementById(id).textContent = '-');
       return;
@@ -350,28 +351,25 @@ async function 경로계산(행) {
       strokeOpacity: 0.85
     });
 
-    // 통계 업데이트
-    try {
-      const s = 경로.summary;
-      const 거리km = s?.distance ? (s.distance / 1000).toFixed(1) : '-';
-      const 시간분 = s?.duration ? Math.round(s.duration / 60000) : '-';
-      const 속도 = (s?.distance && s?.duration)
-        ? Math.round((s.distance / 1000) / (s.duration / 3600000))
-        : '-';
+    // 통계
+    const s = 경로.summary || {};
+    console.log('summary 전체:', JSON.stringify(s));
 
-      document.getElementById('카드거리').textContent = 거리km;
-      document.getElementById('카드시간').textContent = 시간분;
-      document.getElementById('카드유류비').textContent = 숫자포맷(s?.fuelPrice);
-      document.getElementById('카드톨비').textContent = 숫자포맷(s?.tollFare);
-      document.getElementById('카드속도').textContent = 속도;
-    } catch(statsErr) {
-      console.error('통계 오류:', statsErr);
-      ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
-        .forEach(id => document.getElementById(id).textContent = '-');
-    }
+    const 거리m = Number(s.distance) || 0;
+    const 시간ms = Number(s.duration) || 0;
+    const 거리km = 거리m > 0 ? (거리m / 1000).toFixed(1) : '-';
+    const 시간분 = 시간ms > 0 ? Math.round(시간ms / 60000) : '-';
+    const 속도 = (거리m > 0 && 시간ms > 0)
+      ? Math.round((거리m / 1000) / (시간ms / 3600000)) : '-';
+
+    document.getElementById('카드거리').textContent = 거리km;
+    document.getElementById('카드시간').textContent = 시간분;
+    document.getElementById('카드유류비').textContent = 숫자포맷(s.fuelPrice ?? s.fuelprice ?? '-');
+    document.getElementById('카드톨비').textContent = 숫자포맷(s.tollFare ?? s.tollfare ?? '-');
+    document.getElementById('카드속도').textContent = 속도;
 
   } catch(e) {
-    console.error('경로계산 오류:', e);
+    console.error('경로계산 전체 오류:', e);
     ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
       .forEach(id => document.getElementById(id).textContent = '오류');
   }
