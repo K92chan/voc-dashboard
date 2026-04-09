@@ -8,12 +8,11 @@ exports.handler = async (event) => {
   };
 
   const 경유배열 = waypoints
-    ? waypoints.split(':').map(w => w.trim()).filter(w => w && w.includes(','))
+    ? waypoints.split('|').map(w => w.trim()).filter(w => w.includes(','))
     : [];
 
-  console.log('출발:', start);
-  console.log('도착:', goal);
-  console.log('경유지:', 경유배열);
+  console.log('출발:', start, '/ 도착:', goal);
+  console.log('경유지 수:', 경유배열.length, '/ 목록:', 경유배열);
 
   const 시도목록 = [
     { base: 'https://maps.apigw.ntruss.com',         api: 'map-direction-15', 최대: 15 },
@@ -25,19 +24,18 @@ exports.handler = async (event) => {
   for (const { base, api, 최대 } of 시도목록) {
     try {
       const wp = 경유배열.slice(0, 최대).join(':');
-      // ⚠️ encodeURIComponent 제거 — 네이버 API는 raw 형식 필요
-      let url = `${base}/${api}/v1/driving?start=${start}&goal=${goal}`;
-      if (wp) url += `&waypoints=${wp}`;
-      url += `&option=trafast`;
+      const params = new URLSearchParams({ start, goal, option: 'trafast' });
+      if (wp) params.append('waypoints', wp);
+      const url = `${base}/${api}/v1/driving?${params.toString()}`;
 
       console.log(`[${api}] URL:`, url);
       const res = await fetch(url, { headers });
       const data = await res.json();
-      console.log(`[${api}] code:`, data.code, '| message:', data.message);
+      console.log(`[${api}] code:`, data.code, data.message);
 
       if (data.code === 0 && data.route) {
         const 경로 = data.route.trafast?.[0] || data.route.traoptimal?.[0];
-        console.log('summary:', JSON.stringify(경로?.summary));
+        console.log('사용경유지:', 경로?.summary?.waypoints?.length || 0, '개');
         return {
           statusCode: 200,
           headers: { 'Access-Control-Allow-Origin': '*' },
