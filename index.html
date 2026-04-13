@@ -1,378 +1,720 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>CSM 운행경로 대시보드</title>
+  <title>순회차량 코스 테스트</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f0f2f5; font-family: 맑은고딕, sans-serif; padding: 20px; }
-    h1 { color: #333; font-size: 22px; margin-bottom: 4px; }
-    .부제 { color: #888; font-size: 13px; margin-bottom: 16px; }
+    body { background: #f0f2f5; font-family: 맑은고딕, sans-serif; }
 
-    .필터영역 {
-      background: white; border-radius: 12px; padding: 16px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;
-      display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
-    }
-    .필터그룹 { display: flex; flex-direction: column; gap: 4px; }
-    .필터그룹 label { font-size: 12px; color: #555; font-weight: bold; }
-    .필터그룹 select {
-      padding: 7px 12px; border: 1px solid #ddd; border-radius: 8px;
-      font-size: 14px; font-family: 맑은고딕, sans-serif; min-width: 120px;
-    }
+    /* ── 로그인 ── */
+    #로그인화면 { display:flex; justify-content:center; align-items:center; min-height:100vh; }
+    .로그인박스 { background:white; border-radius:16px; padding:40px; box-shadow:0 4px 20px rgba(0,0,0,0.12); width:340px; text-align:center; }
+    .로그인박스 h2 { color:#1a73e8; margin-bottom:6px; font-size:20px; }
+    .로그인박스 .sub { color:#888; font-size:13px; margin-bottom:24px; }
+    .입력그룹 { margin-bottom:12px; text-align:left; }
+    .입력그룹 label { font-size:12px; color:#555; font-weight:bold; display:block; margin-bottom:4px; }
+    .입력그룹 input { width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:맑은고딕,sans-serif; }
+    .로그인버튼 { width:100%; padding:12px; background:#1a73e8; color:white; border:none; border-radius:8px; font-size:15px; cursor:pointer; margin-top:8px; font-family:맑은고딕,sans-serif; font-weight:bold; }
+    .로그인버튼:hover { background:#1558b0; }
 
-    .카드묶음 { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-    .카드 {
-      background: white; border-radius: 12px; padding: 14px 18px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-align: center; flex: 1; min-width: 100px;
-    }
-    .카드 .숫자 { font-size: 22px; font-weight: bold; color: #1a73e8; }
-    .카드 .설명 { font-size: 11px; color: #888; margin-top: 4px; }
-    .카드.빨강 .숫자 { color: #e53935; }
-    .카드.초록 .숫자 { color: #2e7d32; }
-    .카드.주황 .숫자 { color: #e65100; }
+    /* ── 모달 ── */
+    .모달배경 { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:999; justify-content:center; align-items:center; }
+    .모달배경.열림 { display:flex; }
+    .모달박스 { background:white; border-radius:16px; padding:32px; width:320px; box-shadow:0 8px 32px rgba(0,0,0,0.2); }
+    .모달박스 h3 { font-size:16px; color:#333; margin-bottom:20px; }
+    .모달버튼묶음 { display:flex; gap:8px; margin-top:16px; }
+    .모달버튼 { flex:1; padding:10px; border:none; border-radius:8px; font-size:14px; cursor:pointer; font-family:맑은고딕,sans-serif; }
+    .모달버튼.확인 { background:#1a73e8; color:white; }
+    .모달버튼.취소 { background:#f0f0f0; color:#555; }
 
-    .로딩바 {
-      background: #e8f0fe; border-radius: 8px; padding: 10px 16px;
-      color: #1a73e8; font-size: 13px; margin-bottom: 12px;
-      display: none; text-align: center;
-    }
-    #지도 {
-      width: 100%; height: 520px; border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 16px;
-    }
-    .경유지목록 {
-      background: white; border-radius: 12px; padding: 16px 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    }
-    .경유지목록 h3 { font-size: 15px; color: #333; margin-bottom: 12px; }
-    .경유지아이템 {
-      display: flex; align-items: center; gap: 12px;
-      padding: 8px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px;
-    }
-    .경유지아이템:last-child { border-bottom: none; }
-    .뱃지 {
-      width: 28px; height: 28px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-weight: bold; font-size: 12px; color: white; flex-shrink: 0;
-    }
-    .뱃지.출발 { background: #2e7d32; }
-    .뱃지.경유 { background: #1a73e8; }
-    .뱃지.도착 { background: #e53935; }
-    #안내메시지 { text-align: center; padding: 40px; color: #888; font-size: 15px; }
+    /* ── 대시보드 ── */
+    #대시보드 { display:none; padding:16px; }
+    .상단바 { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px; }
+    .상단바 h1 { color:#333; font-size:20px; }
+    .상단바 .우측 { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .뱃지 { background:#e8f0fe; color:#1a73e8; padding:6px 14px; border-radius:20px; font-size:13px; font-weight:bold; }
 
-    .api출처 { font-size: 11px; color: #aaa; margin-top: 2px; }
+    /* ── 컨트롤바 ── */
+    .컨트롤바 { background:white; border-radius:12px; padding:14px 18px; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:14px; display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; }
+    .컨트롤그룹 { display:flex; flex-direction:column; gap:4px; }
+    .컨트롤그룹 label { font-size:12px; color:#555; font-weight:bold; }
+    .컨트롤그룹 select { padding:7px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; font-family:맑은고딕,sans-serif; }
+
+    /* ── 버튼 ── */
+    .btn { padding:7px 14px; border:none; border-radius:8px; font-size:13px; cursor:pointer; font-family:맑은고딕,sans-serif; font-weight:bold; transition:opacity 0.15s; }
+    .btn:hover { opacity:0.85; }
+    .btn:disabled { opacity:0.5; cursor:not-allowed; }
+    .btn-blue   { background:#1a73e8; color:white; }
+    .btn-green  { background:#2e7d32; color:white; }
+    .btn-gray   { background:#f0f0f0; color:#555; }
+    .btn-red    { background:#e53935; color:white; }
+    .btn-orange { background:#e65100; color:white; }
+    .btn-sm { padding:5px 10px; font-size:12px; }
+
+    /* ── 그리드 ── */
+    .grid { display:flex; flex-direction:column; gap:8px; }
+    .row-wrap { background:white; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.07); overflow:hidden; }
+    .row-main { display:flex; align-items:flex-start; gap:8px; padding:10px 14px; min-height:56px; }
+    .row-label { font-weight:bold; font-size:13px; min-width:52px; padding-top:8px; flex-shrink:0; }
+    .row-label.미지정 { color:#888; }
+    .row-label.물류   { color:#e65100; }
+    .row-label.호차   { color:#1a73e8; }
+
+    .chip-zone {
+      flex:1; min-height:40px; padding:4px 6px;
+      display:flex; flex-wrap:wrap; gap:5px;
+      border-radius:8px; border:2px dashed transparent;
+      transition:border-color 0.15s, background 0.15s;
+      position:relative;
+    }
+    .chip-zone.drag-over { border-color:#1a73e8; background:#f0f6ff; }
+    .chip-zone-empty::after {
+      content:'지점을 드래그하세요';
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      color:#ccc; font-size:12px; pointer-events:none; white-space:nowrap;
+    }
+    .chip-zone[data-palette="true"] { background:#fff8f0; border:2px dashed #e65100 !important; border-radius:8px; min-height:44px; }
+
+    .chip {
+      display:inline-flex; align-items:center; gap:5px;
+      background:#e8f0fe; color:#1a73e8;
+      border:1.5px solid #1a73e8; border-radius:16px;
+      padding:4px 10px; font-size:12px; font-weight:bold;
+      cursor:grab; user-select:none; white-space:nowrap;
+      transition:all 0.12s;
+    }
+    .chip:hover { background:#1a73e8; color:white; }
+    .chip.dragging { opacity:0.3; }
+    .chip .qty { background:#1a73e8; color:white; border-radius:8px; padding:1px 5px; font-size:10px; }
+    .chip:hover .qty { background:white; color:#1a73e8; }
+    .chip-mul { background:#fff3e0 !important; color:#e65100 !important; border-color:#e65100 !important; }
+    .chip-mul:hover { background:#e65100 !important; color:white !important; }
+    .chip-mul .qty { background:#e65100 !important; color:white !important; }
+    .chip-mul:hover .qty { background:white !important; color:#e65100 !important; }
+    .chip.chip-depart { border-color:#2e7d32 !important; background:#e8f5e9 !important; color:#2e7d32 !important; }
+
+    .drop-indicator { width:3px; min-height:32px; background:#1a73e8; border-radius:2px; flex-shrink:0; pointer-events:none; }
+
+    /* ── 호차 컨트롤 ── */
+    .row-ctrl { display:flex; align-items:center; gap:6px; flex-shrink:0; padding-top:4px; flex-wrap:wrap; justify-content:flex-end; min-width:260px; }
+    .row-ctrl select { padding:4px 8px; border:1px solid #ddd; border-radius:6px; font-size:12px; font-family:맑은고딕,sans-serif; }
+
+    /* ── 결과 ── */
+    .result-area { display:none; border-top:1px solid #f0f0f0; padding:10px 14px; }
+    .stats-row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+    .stat-box { background:#f8f9fa; border-radius:8px; padding:8px 14px; text-align:center; }
+    .stat-box .s-label { font-size:11px; color:#888; }
+    .stat-box .s-value { font-size:16px; font-weight:bold; color:#1a73e8; }
+    .map-box { width:100%; height:300px; border-radius:8px; }
+
+    /* ── 메시지 ── */
+    .msg { font-size:13px; margin-top:8px; }
+    .msg-err { color:#e53935; }
+    .msg-ok  { color:#2e7d32; }
+    .msg-ing { color:#1a73e8; }
   </style>
 </head>
 <body>
 
-<h1>🚗 CSM 운행경로 대시보드</h1>
-<p class="부제">날짜·부서·배송처·차량을 선택하면 실제 도로 경로와 통계를 확인할 수 있어요</p>
-
-<div class="필터영역">
-  <div class="필터그룹">
-    <label>📅 날짜</label>
-    <select id="sel날짜" onchange="날짜변경()"><option>불러오는 중...</option></select>
-  </div>
-  <div class="필터그룹">
-    <label>🏢 부서명</label>
-    <select id="sel부서" onchange="부서변경()"><option value="전체">전체</option></select>
-  </div>
-  <div class="필터그룹">
-    <label>📦 배송처</label>
-    <select id="sel배송처" onchange="배송처변경()"><option value="전체">전체</option></select>
-  </div>
-  <div class="필터그룹">
-    <label>🚛 차량유형</label>
-    <select id="sel차량" onchange="차량변경()"><option value="전체">전체</option></select>
-  </div>
-  <div class="필터그룹">
-    <label>👤 기사</label>
-    <select id="sel기사" onchange="기사변경()"><option>기사 선택</option></select>
+<!-- 로그인 -->
+<div id="로그인화면">
+  <div class="로그인박스">
+    <h2>🚛 Etland Milkrun</h2>
+    <p class="sub">순회차량 코스 테스트</p>
+    <div class="입력그룹"><label>아이디</label><input type="text" id="입력ID" placeholder="아이디"></div>
+    <div class="입력그룹"><label>비밀번호</label><input type="password" id="입력PW" placeholder="비밀번호" onkeydown="if(event.key==='Enter') 로그인()"></div>
+    <button class="로그인버튼" onclick="로그인()">로그인</button>
+    <div class="msg msg-err" id="로그인오류" style="display:none">❌ 아이디 또는 비밀번호가 틀렸습니다</div>
   </div>
 </div>
 
-<div class="카드묶음">
-  <div class="카드">
-    <div class="숫자" id="카드거리">-</div>
-    <div class="설명">운행거리 (km)</div>
-    <div class="api출처">Directions API</div>
-  </div>
-  <div class="카드">
-    <div class="숫자" id="카드시간">-</div>
-    <div class="설명">운행시간 (분)</div>
-    <div class="api출처">Directions API</div>
-  </div>
-  <div class="카드">
-    <div class="숫자" id="카드건수">-</div>
-    <div class="설명">총 건수</div>
-  </div>
-  <div class="카드 빨강">
-    <div class="숫자" id="카드실패">-</div>
-    <div class="설명">실패 건</div>
-  </div>
-  <div class="카드 주황">
-    <div class="숫자" id="카드유류비">-</div>
-    <div class="설명">유류비 (원)</div>
-    <div class="api출처">Directions API</div>
-  </div>
-  <div class="카드 주황">
-    <div class="숫자" id="카드톨비">-</div>
-    <div class="설명">톨비 (원)</div>
-    <div class="api출처">Directions API</div>
-  </div>
-  <div class="카드 초록">
-    <div class="숫자" id="카드속도">-</div>
-    <div class="설명">평균속도 (km/h)</div>
-    <div class="api출처">Directions API</div>
+<!-- 비밀번호 변경 모달 -->
+<div class="모달배경" id="비번모달">
+  <div class="모달박스">
+    <h3>🔑 비밀번호 변경</h3>
+    <div class="입력그룹"><label>현재 비밀번호</label><input type="password" id="현재비번"></div>
+    <div class="입력그룹"><label>새 비밀번호</label><input type="password" id="새비번"></div>
+    <div class="입력그룹"><label>새 비밀번호 확인</label><input type="password" id="새비번확인"></div>
+    <div id="비번메시지" class="msg" style="min-height:18px"></div>
+    <div class="모달버튼묶음">
+      <button class="모달버튼 취소" onclick="비번모달닫기()">취소</button>
+      <button class="모달버튼 확인" onclick="비번변경()">변경하기</button>
+    </div>
   </div>
 </div>
 
-<div class="로딩바" id="로딩바">🔍 네이버 Directions API로 실제 경로 계산 중...</div>
-<div id="지도"></div>
-
-<div class="경유지목록">
-  <h3>📍 경유지 목록</h3>
-  <div id="경유지목록내용">
-    <div id="안내메시지">위에서 날짜와 기사를 선택해주세요</div>
+<!-- 대시보드 -->
+<div id="대시보드">
+  <div class="상단바">
+    <h1>🚛 순회차량 코스 테스트</h1>
+    <div class="우측">
+      <span class="뱃지" id="사용자뱃지">-</span>
+      <button class="btn btn-gray" onclick="비번모달열기()">🔑 비밀번호</button>
+      <button class="btn btn-red" onclick="로그아웃()">로그아웃</button>
+    </div>
   </div>
+
+  <div class="컨트롤바">
+    <div class="컨트롤그룹">
+      <label>🏢 관할물류명</label>
+      <select id="sel관할" onchange="관할변경()"></select>
+    </div>
+    <button class="btn btn-green" onclick="전체계산()" style="align-self:flex-end;margin-left:auto">🔄 전체계산</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
 </div>
 
 <script src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=nti3kkmh2c"></script>
 <script>
+// ═══ 설정 ═══
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz3u_qkSOIjW3yQVVvOalqhkET1N2HndGzPfGmzT87T13T4an1xUGQ0gx9DGxAztPok/exec';
+const 지점시트URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTDmByM5PV5zjDW4mC7kBtNIriUlVPy6DhdZQEuqD5YAizzHDY95_eqhWurQxgmMgIDJCy1MoQ3F91-/pub?gid=0&single=true&output=csv';
+const 계정시트URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTs6k1Ky8Hdnrl2U5A242Vg6ZqBaQSrLGkDr2xf_yMuMflYc-dD_2-v-2wRmIsip32W087DXCx4ZRzu/pub?gid=1375354052&single=true&output=csv';
+const 호차목록 = ['1호차','2호차','3호차','4호차','5호차','6호차','7호차','8호차','9호차','10호차'];
 
-const 시트주소 = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTs6k1Ky8Hdnrl2U5A242Vg6ZqBaQSrLGkDr2xf_yMuMflYc-dD_2-v-2wRmIsip32W087DXCx4ZRzu/pub?gid=0&single=true&output=csv';
+// 연비(km/L)
+const 연비맵 = { '1톤':10, '2.5톤':8, '5톤':6, '11톤':4.5, '25톤':3.5 };
+// 연료 단가(원/L)
+const 유가맵 = { '디젤':1650, '휘발유':1800, 'LPG':950, 'CNG':700 };
 
-let 전체데이터 = [];
-let 지도객체 = null;
-let 마커들 = [];
-let 폴리라인 = null;
+// ═══ 상태 ═══
+let 계정목록 = [];
+let 현재사용자 = null;
+let 전체지점 = [];
+let 현재지점 = [];
+// 호차배치: { '미지정': [{uid,code},...], '물류': ['code',...], '1호차': [{uid,code},...], ... }
+let 호차배치 = {};
+// 호차별 차량 설정
+let 호차설정 = {};
+let 지도맵 = {};
+let draggedEl = null;  // 드래그 중인 DOM 요소
+let dragInfo = null;   // { code, fromZone, isPalette }
+let dropDone = false;
 
+function genUID() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2,6);
+}
+
+function 배치초기화() {
+  호차배치 = { '미지정': [], '물류': [] };
+  호차목록.forEach(h => { 호차배치[h] = []; });
+}
+
+function 설정초기화() {
+  호차목록.forEach(h => {
+    if (!호차설정[h]) 호차설정[h] = { 연료:'디젤', 톤수:'5톤' };
+  });
+}
+
+// ═══ 유틸 ═══
 function CSV파싱(text) {
   const rows = [];
   for (const line of text.trim().split('\n')) {
-    const row = [];
-    let inQ = false, cell = '';
+    const row = []; let inQ=false, cell='';
     for (const ch of line) {
-      if (ch === '"') inQ = !inQ;
-      else if (ch === ',' && !inQ) { row.push(cell.trim()); cell = ''; }
-      else cell += ch;
+      if (ch==='"') inQ=!inQ;
+      else if (ch===','&&!inQ) { row.push(cell.trim()); cell=''; }
+      else cell+=ch;
     }
-    row.push(cell.trim());
-    rows.push(row);
+    row.push(cell.trim()); rows.push(row);
   }
   return rows;
 }
 
-function 좌표파싱(str) {
-  if (!str?.trim()) return null;
-  const [lngStr, latStr] = str.trim().split(',');
-  const lng = parseFloat(lngStr), lat = parseFloat(latStr);
-  return (isNaN(lng) || isNaN(lat)) ? null : { lat, lng };
-}
-
 function 숫자포맷(n) {
-  if (n == null || n === '' || isNaN(n)) return '-';
+  if (n==null||n===''||isNaN(Number(n))) return '-';
   return Number(n).toLocaleString();
 }
 
-// 데이터 불러오기
-fetch(시트주소).then(r => r.text()).then(csv => {
-  const rows = CSV파싱(csv);
-  for (let i = 1; i < rows.length; i++) {
-    const v = rows[i];
-    if (!v[0] || !v[2]) continue;
-    const 경유원본 = v[15] || '';
-    전체데이터.push({
-      일자: v[0].trim(),
-      기사명: v[2].trim(),
-      부서명: v[4].trim(),
-      배송처명: v[6].trim(),
-      차량유형: v[7].trim(),
-      중량명: v[9].trim(),
-      시작: v[13].trim(),
-      종료: v[14].trim(),
-      경유목록: 경유원본 ? 경유원본.split('|').map(s=>s.trim()).filter(s=>s.includes(',')) : [],
-      총건수: v[16] || '-',
-      실패건: v[17] || '0',
-    });
-  }
+function 지점조회(code) { return 전체지점.find(p=>p.코드===code); }
+function is물류(code)    { return 지점조회(code)?.구분==='물류'; }
 
-  지도객체 = new naver.maps.Map('지도', {
-    zoom: 8, center: new naver.maps.LatLng(36.5, 127.8)
+function 유류비계산(distanceM, 연료, 톤수) {
+  if (!distanceM||distanceM<=0) return 0;
+  const km = distanceM/1000;
+  const 연비 = 연비맵[톤수]||6;
+  const 단가 = 유가맵[연료]||1650;
+  return Math.round(km/연비*단가);
+}
+
+// ═══ 로그인 ═══
+fetch(계정시트URL).then(r=>r.text()).then(csv=>{
+  CSV파싱(csv).slice(1).forEach(v=>{
+    if(v[0]) 계정목록.push({id:v[0].trim(),pw:v[1].trim(),권한:v[2].trim()});
   });
-
-  const 날짜목록 = [...new Set(전체데이터.map(d => d.일자))].sort();
-  document.getElementById('sel날짜').innerHTML =
-    날짜목록.map(d => `<option value="${d}">${d}</option>`).join('');
-  날짜변경();
 });
 
-function 필터데이터() {
-  const 날짜 = document.getElementById('sel날짜').value;
-  const 부서 = document.getElementById('sel부서').value;
-  const 배송처 = document.getElementById('sel배송처').value;
-  const 차량 = document.getElementById('sel차량').value;
-  return 전체데이터.filter(d =>
-    d.일자 === 날짜 &&
-    (부서 === '전체' || d.부서명 === 부서) &&
-    (배송처 === '전체' || d.배송처명 === 배송처) &&
-    (차량 === '전체' || d.차량유형 === 차량)
-  );
+function 로그인() {
+  const id=document.getElementById('입력ID').value.trim();
+  const pw=document.getElementById('입력PW').value.trim();
+  const 계정=계정목록.find(a=>a.id===id&&a.pw===pw);
+  if(!계정){document.getElementById('로그인오류').style.display='block';return;}
+  현재사용자=계정;
+  document.getElementById('로그인오류').style.display='none';
+  document.getElementById('로그인화면').style.display='none';
+  document.getElementById('대시보드').style.display='block';
+  document.getElementById('사용자뱃지').textContent=`${계정.id} (${계정.권한==='전체'?'마스터':계정.권한})`;
+  초기화();
 }
 
-function 셀렉트갱신(id, 목록, 전체=true) {
-  const el = document.getElementById(id);
-  const 현재 = el.value;
-  el.innerHTML = (전체 ? ['전체',...목록] : 목록)
-    .map(v => `<option value="${v}">${v}</option>`).join('');
-  if ([...el.options].some(o => o.value === 현재)) el.value = 현재;
+function 로그아웃() {
+  현재사용자=null;
+  document.getElementById('대시보드').style.display='none';
+  document.getElementById('로그인화면').style.display='flex';
+  ['입력ID','입력PW'].forEach(id=>document.getElementById(id).value='');
 }
 
-function 날짜변경() {
-  const 날짜 = document.getElementById('sel날짜').value;
-  const 해당 = 전체데이터.filter(d => d.일자 === 날짜);
-  셀렉트갱신('sel부서', [...new Set(해당.map(d => d.부서명))].sort());
-  부서변경();
-}
-function 부서변경() {
-  셀렉트갱신('sel배송처', [...new Set(필터데이터().map(d => d.배송처명))].sort());
-  배송처변경();
-}
-function 배송처변경() {
-  셀렉트갱신('sel차량', [...new Set(필터데이터().map(d => d.차량유형))].sort());
-  차량변경();
-}
-function 차량변경() {
-  셀렉트갱신('sel기사', [...new Set(필터데이터().map(d => d.기사명))].sort(), false);
-  기사변경();
-}
-
-async function 기사변경() {
-  const 기사 = document.getElementById('sel기사').value;
-  const 행 = 필터데이터().find(d => d.기사명 === 기사);
-  if (!행) return;
-
-  document.getElementById('카드건수').textContent = 행.총건수;
-  document.getElementById('카드실패').textContent = 행.실패건;
-  ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
-    .forEach(id => document.getElementById(id).textContent = '계산중..');
-
-  마커들.forEach(m => m.setMap(null)); 마커들 = [];
-  if (폴리라인) { 폴리라인.setMap(null); 폴리라인 = null; }
-
-  const 시작 = 좌표파싱(행.시작);
-  const 종료 = 좌표파싱(행.종료);
-  if (!시작 || !종료) return;
-
-  const 경유좌표들 = 행.경유목록.map(s => 좌표파싱(s)).filter(Boolean);
-
-  // 마커
-  마커찍기(시작, '출발', '#2e7d32');
-  경유좌표들.forEach((c, i) => 마커찍기(c, i+1, '#1a73e8'));
-  마커찍기(종료, '도착', '#e53935');
-
-  // 경유지 목록
-  let html = `
-    <div class="경유지아이템">
-      <div class="뱃지 출발">출</div>
-      <div><b>출발지</b> — ${행.부서명}<br>
-      <span style="color:#888;font-size:12px">${행.시작}</span></div>
-    </div>`;
-  경유좌표들.forEach((c, i) => {
-    html += `<div class="경유지아이템">
-      <div class="뱃지 경유">${i+1}</div>
-      <div><b>${i+1}번째 경유지</b><br>
-      <span style="color:#888;font-size:12px">${행.경유목록[i]}</span></div>
-    </div>`;
-  });
-  html += `<div class="경유지아이템">
-    <div class="뱃지 도착">착</div>
-    <div><b>도착지</b> — ${행.배송처명}<br>
-    <span style="color:#888;font-size:12px">${행.종료}</span></div>
-  </div>`;
-  document.getElementById('경유지목록내용').innerHTML = html;
-
-  // 지도 범위
-  const 모든 = [시작, ...경유좌표들, 종료];
-  const 범위 = new naver.maps.LatLngBounds(
-    new naver.maps.LatLng(시작.lat, 시작.lng),
-    new naver.maps.LatLng(시작.lat, 시작.lng)
-  );
-  모든.forEach(c => 범위.extend(new naver.maps.LatLng(c.lat, c.lng)));
-  지도객체.fitBounds(범위, { padding: 80 });
-
-  // Directions API
-  document.getElementById('로딩바').style.display = 'block';
-  await 경로계산(행);
-  document.getElementById('로딩바').style.display = 'none';
-}
-
-function 마커찍기(좌표, 라벨, 색) {
-  const 내용 = typeof 라벨 === 'number'
-    ? `<div style="background:${색};color:white;border-radius:50%;width:30px;height:30px;line-height:30px;text-align:center;font-weight:bold;font-size:13px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${라벨}</div>`
-    : `<div style="background:${색};color:white;border-radius:16px;padding:4px 10px;font-size:12px;font-weight:bold;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.4)">${라벨}</div>`;
-  마커들.push(new naver.maps.Marker({
-    position: new naver.maps.LatLng(좌표.lat, 좌표.lng),
-    map: 지도객체,
-    icon: { content: 내용, anchor: new naver.maps.Point(15, 15) }
-  }));
-}
-
-async function 경로계산(행) {
+// ═══ 비밀번호 변경 ═══
+function 비번모달열기(){['현재비번','새비번','새비번확인'].forEach(id=>document.getElementById(id).value='');document.getElementById('비번메시지').textContent='';document.getElementById('비번모달').classList.add('열림');}
+function 비번모달닫기(){document.getElementById('비번모달').classList.remove('열림');}
+async function 비번변경(){
+  const 현재=document.getElementById('현재비번').value.trim();
+  const 새것=document.getElementById('새비번').value.trim();
+  const 확인=document.getElementById('새비번확인').value.trim();
+  const el=document.getElementById('비번메시지');
+  const show=(msg,cls)=>{el.textContent=msg;el.className=`msg ${cls}`;};
+  if(!현재||!새것||!확인){show('❌ 모든 항목을 입력해주세요','msg-err');return;}
+  if(새것!==확인){show('❌ 새 비밀번호가 일치하지 않습니다','msg-err');return;}
+  if(새것.length<4){show('❌ 비밀번호는 4자 이상','msg-err');return;}
+  show('⏳ 변경 중...','msg-ing');
   try {
-    const res = await fetch('/.netlify/functions/directions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        start: 행.시작,
-        goal: 행.종료,
-        waypoints: 행.경유목록.length > 0 ? 행.경유목록.join('|') : undefined
-      })
-    });
-    const data = await res.json();
-    console.log('directions 응답:', JSON.stringify(data).substring(0, 300));
+    const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'changePassword',id:현재사용자.id,oldPassword:현재,newPassword:새것})});
+    const data=await res.json();
+    if(data.success){현재사용자.pw=새것;show('✅ 변경 완료!','msg-ok');setTimeout(비번모달닫기,1500);}
+    else show(`❌ ${data.message}`,'msg-err');
+  } catch(e){show('❌ 오류 발생','msg-err');}
+}
 
-    const 경로 = data.route?.trafast?.[0] || data.route?.traoptimal?.[0];
-    if (!경로?.path) {
-      console.log('경로 없음');
-      ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
-        .forEach(id => document.getElementById(id).textContent = '-');
-      return;
+// ═══ 초기화 ═══
+async function 초기화() {
+  if (전체지점.length===0) {
+    const csv=await fetch(지점시트URL).then(r=>r.text());
+    const rows=CSV파싱(csv);
+    for(let i=1;i<rows.length;i++){
+      const v=rows[i]; if(!v[3]) continue;
+      전체지점.push({
+        관할코드:v[0]?.trim(), 관할명:v[1]?.trim(),
+        호차:(v[2]||'미지정').trim(),
+        코드:v[3].trim(), 명:v[4]?.trim()||v[3].trim(),
+        주소:((v[5]||'')+' '+(v[6]||'')).trim(),
+        x:v[7]?.trim(), y:v[8]?.trim(),
+        물동량:v[9]?.trim()||'',
+        순서:parseInt(v[10])||0,
+        구분:(v[11]?.trim()||'지점')
+      });
+    }
+  }
+  설정초기화();
+  const 허용=현재사용자.권한==='전체'
+    ?[...new Set(전체지점.map(p=>p.관할명))].sort()
+    :현재사용자.권한.split(',').map(s=>s.trim());
+  const sel=document.getElementById('sel관할');
+  sel.innerHTML=허용.map(v=>`<option value="${v}">${v}</option>`).join('');
+  관할변경();
+}
+
+function 관할변경() {
+  const 관할=document.getElementById('sel관할').value;
+  현재지점=전체지점.filter(p=>p.관할명===관할);
+  배치초기화();
+
+  // 물류 팔레트
+  현재지점.filter(p=>p.구분==='물류').forEach(p=>{
+    호차배치['물류'].push(p.코드);
+  });
+
+  // 일반 지점 → 호차 배치 or 미지정
+  const 호차별임시 = {};
+  현재지점.filter(p=>p.구분!=='물류').forEach(p=>{
+    const h=(p.호차||'미지정').trim();
+    if(h==='미지정'||!호차배치[h]) {
+      호차배치['미지정'].push({uid:genUID(),code:p.코드});
+    } else {
+      if(!호차별임시[h]) 호차별임시[h]=[];
+      호차별임시[h].push({순서:p.순서,uid:genUID(),code:p.코드});
+    }
+  });
+  // 순서 정렬
+  호차목록.forEach(h=>{
+    if(호차별임시[h]){
+      호차별임시[h].sort((a,b)=>a.순서-b.순서);
+      호차배치[h]=호차별임시[h].map(o=>({uid:o.uid,code:o.code}));
+    }
+  });
+
+  지도맵={};
+  renderGrid();
+}
+
+// ═══ 그리드 렌더링 ═══
+function renderGrid() {
+  const grid=document.getElementById('grid');
+  // 기존 지도 인스턴스 정리
+  Object.values(지도맵).forEach(m=>{ try{m._overlays?.forEach(o=>o.setMap(null));}catch(e){} });
+  지도맵={};
+  grid.innerHTML='';
+  grid.appendChild(makeRow('물류'));
+  grid.appendChild(makeRow('미지정'));
+  호차목록.forEach(h=>grid.appendChild(makeRow(h)));
+  setupDnD();
+  // 지도 재초기화
+  호차목록.forEach(h=>{
+    const resultEl=document.getElementById(`result-${h}`);
+    if(resultEl&&resultEl.style.display!=='none'){
+      const mapDiv=document.getElementById(`map-${h}`);
+      if(mapDiv&&mapDiv.children.length===0) initMap(h);
+    }
+  });
+}
+
+function makeRow(행명) {
+  const isMul=행명==='물류';
+  const isMi=행명==='미지정';
+  const isHo=!isMul&&!isMi;
+
+  const wrap=document.createElement('div');
+  wrap.className='row-wrap'; wrap.dataset.row=행명;
+
+  // 칩 생성
+  let chipsHTML='';
+  if(isMul){
+    chipsHTML=(호차배치['물류']||[]).map(code=>{
+      const p=지점조회(code); if(!p) return '';
+      return `<div class="chip chip-mul" draggable="true" data-code="${code}" data-uid="${genUID()}" data-is-palette="true">${p.명}${p.물동량?`<span class="qty">${p.물동량}</span>`:''}</div>`;
+    }).join('');
+  } else {
+    const items=호차배치[행명]||[];
+    chipsHTML=items.map((item,idx)=>{
+      const p=지점조회(item.code); if(!p) return '';
+      const isMulChip=p.구분==='물류';
+      const isDepart=isHo&&idx===0;
+      return `<div class="chip ${isMulChip?'chip-mul':''} ${isDepart?'chip-depart':''}"
+        draggable="true" data-code="${item.code}" data-uid="${item.uid}">
+        ${isDepart?'🏁 ':''}${p.명}${p.물동량?`<span class="qty">${p.물동량}</span>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  const empty=!isMul&&(호차배치[행명]||[]).length===0;
+  let labelClass=`row-label ${isMul?'물류':isMi?'미지정':'호차'}`;
+
+  const main=document.createElement('div');
+  main.className='row-main';
+
+  let ctrlHTML='';
+  if(isHo){
+    const s=호차설정[행명]||{연료:'디젤',톤수:'5톤'};
+    ctrlHTML=`
+      <div class="row-ctrl">
+        <select onchange="설정변경('${행명}','연료',this.value)">
+          ${['디젤','휘발유','LPG','CNG'].map(f=>`<option ${s.연료===f?'selected':''}>${f}</option>`).join('')}
+        </select>
+        <select onchange="설정변경('${행명}','톤수',this.value)">
+          ${['1톤','2.5톤','5톤','11톤','25톤'].map(t=>`<option ${s.톤수===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+        <button class="btn btn-gray btn-sm" onclick="호차초기화('${행명}')">🗑 초기화</button>
+        <button class="btn btn-blue btn-sm" id="btn-${행명}" onclick="코스계산('${행명}')">🔄 코스계산</button>
+      </div>`;
+  }
+
+  main.innerHTML=`
+    <div class="${labelClass}">${isMul?'🏭 물류':행명}</div>
+    <div class="chip-zone ${empty?'chip-zone-empty':''}" id="zone-${행명}"
+         data-zone="${행명}" ${isMul?'data-palette="true"':''}>
+      ${chipsHTML}
+    </div>
+    ${ctrlHTML}
+  `;
+  wrap.appendChild(main);
+
+  if(isHo){
+    const result=document.createElement('div');
+    result.className='result-area'; result.id=`result-${행명}`;
+    result.innerHTML=`<div class="stats-row" id="stats-${행명}"></div><div class="map-box" id="map-${행명}"></div>`;
+    wrap.appendChild(result);
+  }
+  return wrap;
+}
+
+function 설정변경(호차명, 키, 값) {
+  if(!호차설정[호차명]) 호차설정[호차명]={연료:'디젤',톤수:'5톤'};
+  호차설정[호차명][키]=값;
+}
+
+// ═══ 호차 초기화 ═══
+function 호차초기화(호차명) {
+  if(!confirm(`${호차명}의 지점 배치를 초기화할까요?`)) return;
+  const items=[...(호차배치[호차명]||[])];
+  items.forEach(item=>{
+    if(!is물류(item.code)) {
+      // 일반 지점 → 미지정으로
+      호차배치['미지정'].push({uid:genUID(),code:item.code});
+    }
+    // 물류 지점은 그냥 제거 (물류 팔레트에 항상 있음)
+  });
+  호차배치[호차명]=[];
+  // 결과 영역 숨기기
+  const r=document.getElementById(`result-${호차명}`);
+  if(r) r.style.display='none';
+  renderGrid();
+  시트저장([호차명]);
+}
+
+// ═══ 드래그&드롭 ═══
+function setupDnD() {
+  document.querySelectorAll('.chip').forEach(c=>{
+    c.addEventListener('dragstart',onDS);
+    c.addEventListener('dragend',onDE);
+  });
+  document.querySelectorAll('.chip-zone').forEach(z=>{
+    z.addEventListener('dragover',onDO);
+    z.addEventListener('dragleave',onDL);
+    z.addEventListener('drop',onDrop);
+  });
+}
+
+function onDS(e) {
+  draggedEl=e.currentTarget;
+  const fromZone=draggedEl.closest('.chip-zone').dataset.zone;
+  dragInfo={code:draggedEl.dataset.code, uid:draggedEl.dataset.uid, fromZone, isPalette:draggedEl.dataset.isPalette==='true'};
+  dropDone=false;
+  if(!dragInfo.isPalette) draggedEl.classList.add('dragging');
+  e.dataTransfer.effectAllowed='move';
+}
+
+function onDE(e) {
+  if(draggedEl) draggedEl.classList.remove('dragging');
+  document.querySelectorAll('.chip-zone').forEach(z=>z.classList.remove('drag-over'));
+  document.querySelectorAll('.drop-indicator').forEach(el=>el.remove());
+  if(!dropDone&&!dragInfo?.isPalette) renderGrid();
+  draggedEl=null; dragInfo=null;
+}
+
+function onDO(e) {
+  e.preventDefault();
+  const zone=e.currentTarget;
+  if(zone.dataset.palette) return;
+  zone.classList.add('drag-over');
+  document.querySelectorAll('.drop-indicator').forEach(el=>el.remove());
+  const after=getAfterEl(zone,e.clientX);
+  const ind=document.createElement('div'); ind.className='drop-indicator';
+  after?zone.insertBefore(ind,after):zone.appendChild(ind);
+}
+
+function onDL(e) {
+  if(!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  const zone=e.currentTarget;
+  if(zone.dataset.palette) return;
+  dropDone=true;
+  zone.classList.remove('drag-over');
+  document.querySelectorAll('.drop-indicator').forEach(el=>el.remove());
+  if(!dragInfo) return;
+
+  const {code,uid,fromZone,isPalette}=dragInfo;
+  const toZone=zone.dataset.zone;
+  const after=getAfterEl(zone,e.clientX);
+
+  if(isPalette) {
+    // 팔레트 → 복사본 삽입
+    const p=지점조회(code); if(!p) return;
+    const newUID=genUID();
+    const newChip=document.createElement('div');
+    newChip.className='chip chip-mul'; newChip.draggable=true;
+    newChip.dataset.code=code; newChip.dataset.uid=newUID;
+    newChip.innerHTML=`${p.명}${p.물동량?`<span class="qty">${p.물동량}</span>`:''}`;
+    after?zone.insertBefore(newChip,after):zone.appendChild(newChip);
+    newChip.addEventListener('dragstart',onDS); newChip.addEventListener('dragend',onDE);
+    // 데이터 업데이트
+    호차배치[toZone]=[...zone.querySelectorAll('.chip')].map(c=>({uid:c.dataset.uid,code:c.dataset.code}));
+  } else {
+    // 일반 이동
+    if(!draggedEl) return;
+    after?zone.insertBefore(draggedEl,after):zone.appendChild(draggedEl);
+    // 데이터 업데이트
+    const fromEl=document.querySelector(`.chip-zone[data-zone="${fromZone}"]`);
+    const toEl=document.querySelector(`.chip-zone[data-zone="${toZone}"]`);
+    if(fromEl) 호차배치[fromZone]=[...fromEl.querySelectorAll('.chip')].map(c=>({uid:c.dataset.uid,code:c.dataset.code}));
+    if(toEl)   호차배치[toZone]  =[...toEl.querySelectorAll('.chip')].map(c=>({uid:c.dataset.uid,code:c.dataset.code}));
+  }
+
+  // 첫 번째 칩 출발 표시 갱신
+  refreshDepartChip(toZone);
+  if(fromZone!==toZone) refreshDepartChip(fromZone);
+
+  // empty 클래스 갱신
+  document.querySelectorAll('.chip-zone').forEach(z=>{
+    const n=z.dataset.zone;
+    if(n==='물류') return;
+    z.classList.toggle('chip-zone-empty',(호차배치[n]||[]).length===0);
+  });
+}
+
+function refreshDepartChip(zone) {
+  if(!호차목록.includes(zone)) return;
+  const zoneEl=document.querySelector(`.chip-zone[data-zone="${zone}"]`);
+  if(!zoneEl) return;
+  const chips=[...zoneEl.querySelectorAll('.chip')];
+  chips.forEach((c,i)=>{
+    c.classList.remove('chip-depart');
+    const p=지점조회(c.dataset.code);
+    const isMulChip=p?.구분==='물류';
+    if(i===0){ c.classList.add('chip-depart'); if(!c.textContent.includes('🏁')) c.innerHTML=`🏁 ${p?.명||''}${p?.물동량?`<span class="qty">${p.물동량}</span>`:''}`; }
+    else { c.innerHTML=`${p?.명||''}${p?.물동량?`<span class="qty">${p.물동량}</span>`:''}`; }
+    if(isMulChip) c.classList.add('chip-mul');
+  });
+}
+
+function getAfterEl(container,x) {
+  const els=[...container.querySelectorAll('.chip:not(.dragging)')];
+  return els.reduce((closest,child)=>{
+    const box=child.getBoundingClientRect();
+    const offset=x-box.left-box.width/2;
+    if(offset<0&&offset>closest.offset) return{offset,element:child};
+    return closest;
+  },{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
+// ═══ 코스 계산 ═══
+async function 코스계산(호차명) {
+  const items=호차배치[호차명]||[];
+  const 지점들=items.map(item=>지점조회(item.code)).filter(Boolean);
+
+  if(지점들.length<2){ alert(`${호차명}에 최소 2개의 지점이 필요해요!\n(첫 번째 지점이 출발지로 사용됩니다)`); return; }
+
+  const btn=document.getElementById(`btn-${호차명}`);
+  btn.textContent='⏳...'; btn.disabled=true;
+
+  const s=호차설정[호차명]||{연료:'디젤',톤수:'5톤'};
+
+  try {
+    const start=`${지점들[0].x},${지점들[0].y}`;
+    const goal=`${지점들.at(-1).x},${지점들.at(-1).y}`;
+    const waypoints=지점들.length>2
+      ? 지점들.slice(1,-1).map(p=>`${p.x},${p.y}`).join('|')
+      : undefined;
+
+    const res=await fetch('/api/directions',{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({start,goal,waypoints})});
+    const data=await res.json();
+    const 경로=data.route?.trafast?.[0];
+
+    const resultEl=document.getElementById(`result-${호차명}`);
+    const statsEl=document.getElementById(`stats-${호차명}`);
+    resultEl.style.display='block';
+
+    if(경로?.summary){
+      const sm=경로.summary;
+      const 거리km=sm.distance>0?(sm.distance/1000).toFixed(1):0;
+      const 시간분=sm.duration>0?Math.round(sm.duration/60000):0;
+      const 계산유류비=유류비계산(sm.distance,s.연료,s.톤수);
+      const 톨비=sm.tollFare||0;
+
+      statsEl.innerHTML=`
+        <div class="stat-box"><div class="s-label">🚗 ${s.톤수} / ⛽ ${s.연료}</div><div class="s-value" style="font-size:13px">차량 설정</div></div>
+        <div class="stat-box"><div class="s-label">🛣 운행거리</div><div class="s-value">${거리km} km</div></div>
+        <div class="stat-box"><div class="s-label">⏱ 운행시간</div><div class="s-value">${시간분} 분</div></div>
+        <div class="stat-box"><div class="s-label">⛽ 유류비</div><div class="s-value">${숫자포맷(계산유류비)} 원</div></div>
+        <div class="stat-box"><div class="s-label">🚧 톨비</div><div class="s-value">${숫자포맷(톨비)} 원</div></div>
+      `;
+    } else {
+      statsEl.innerHTML='<span class="msg-err">❌ 경로 계산 실패</span>';
     }
 
-    // 실제 도로 경로 (파란 실선)
-    폴리라인 = new naver.maps.Polyline({
-      path: 경로.path.map(p => new naver.maps.LatLng(p[1], p[0])),
-      map: 지도객체,
-      strokeColor: '#1a73e8',
-      strokeWeight: 5,
-      strokeOpacity: 0.85
-    });
+    그리기(호차명, 경로, 지점들);
+    await 시트저장([호차명]);
 
-    // 통계
-    const s = 경로.summary || {};
-    console.log('summary 전체:', JSON.stringify(s));
+  } catch(err){ console.error(err); }
+  finally{ btn.textContent='🔄 코스계산'; btn.disabled=false; }
+}
 
-    const 거리m = Number(s.distance) || 0;
-    const 시간ms = Number(s.duration) || 0;
-    const 거리km = 거리m > 0 ? (거리m / 1000).toFixed(1) : '-';
-    const 시간분 = 시간ms > 0 ? Math.round(시간ms / 60000) : '-';
-    const 속도 = (거리m > 0 && 시간ms > 0)
-      ? Math.round((거리m / 1000) / (시간ms / 3600000)) : '-';
+// ═══ 지도 그리기 ═══
+function initMap(호차명) {
+  const mapDiv=document.getElementById(`map-${호차명}`);
+  if(!mapDiv||지도맵[호차명]) return;
+  지도맵[호차명]=new naver.maps.Map(mapDiv,{zoom:10,center:new naver.maps.LatLng(36.5,127.5)});
+  지도맵[호차명]._overlays=[];
+}
 
-    document.getElementById('카드거리').textContent = 거리km;
-    document.getElementById('카드시간').textContent = 시간분;
-    document.getElementById('카드유류비').textContent = 숫자포맷(s.fuelPrice ?? s.fuelprice ?? '-');
-    document.getElementById('카드톨비').textContent = 숫자포맷(s.tollFare ?? s.tollfare ?? '-');
-    document.getElementById('카드속도').textContent = 속도;
-
-  } catch(e) {
-    console.error('경로계산 전체 오류:', e);
-    ['카드거리','카드시간','카드유류비','카드톨비','카드속도']
-      .forEach(id => document.getElementById(id).textContent = '오류');
+function 그리기(호차명, 경로, 지점들) {
+  const mapDiv=document.getElementById(`map-${호차명}`);
+  if(!mapDiv) return;
+  if(!지도맵[호차명]){
+    지도맵[호차명]=new naver.maps.Map(mapDiv,{zoom:10,center:new naver.maps.LatLng(Number(지점들[0].y),Number(지점들[0].x))});
+    지도맵[호차명]._overlays=[];
   }
+  const map=지도맵[호차명];
+  (map._overlays||[]).forEach(o=>{try{o.setMap(null);}catch(e){}});
+  map._overlays=[];
+  const add=o=>{o.setMap(map);map._overlays.push(o);};
+
+  지점들.forEach((p,i)=>{
+    const isDepart=i===0;
+    add(new naver.maps.Marker({
+      position:new naver.maps.LatLng(Number(p.y),Number(p.x)),
+      icon:{
+        content:`<div style="background:${isDepart?'#2e7d32':'#1a73e8'};color:white;border-radius:8px;padding:4px 8px;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 2px 4px rgba(0,0,0,0.3);white-space:nowrap">${isDepart?'🏁 출발: ':''}${i>0?i+'. ':''}${p.명}</div>`,
+        anchor:new naver.maps.Point(20,28)
+      }
+    }));
+  });
+
+  if(경로?.path){
+    add(new naver.maps.Polyline({
+      path:경로.path.map(p=>new naver.maps.LatLng(p[1],p[0])),
+      strokeColor:'#1a73e8',strokeWeight:4,strokeOpacity:0.8
+    }));
+  }
+
+  const coords=지점들.map(p=>new naver.maps.LatLng(Number(p.y),Number(p.x)));
+  const bounds=new naver.maps.LatLngBounds(coords[0],coords[0]);
+  coords.forEach(c=>bounds.extend(c));
+  map.fitBounds(bounds,{padding:50});
+}
+
+// ═══ 전체계산 ═══
+async function 전체계산() {
+  const 배치된=호차목록.filter(h=>(호차배치[h]||[]).length>=2);
+  if(배치된.length===0){alert('지점이 2개 이상 배치된 호차가 없어요!');return;}
+  const btn=document.querySelector('.btn-green');
+  btn.textContent='⏳ 계산 중...'; btn.disabled=true;
+  for(const h of 배치된) await 코스계산(h);
+  btn.textContent='🔄 전체계산'; btn.disabled=false;
+}
+
+// ═══ 구글시트 저장 ═══
+async function 시트저장(대상호차=null) {
+  const 호차맵={};
+  const 저장대상=대상호차||호차목록;
+
+  저장대상.forEach(h=>{
+    (호차배치[h]||[]).forEach((item,idx)=>{
+      if(!is물류(item.code)){
+        호차맵[item.code]={호차:h, 순서:idx+1};
+      }
+    });
+  });
+
+  // 초기화된 호차의 미지정 지점도 반영
+  if(대상호차){
+    (호차배치['미지정']||[]).forEach(item=>{
+      if(!is물류(item.code)&&!호차맵[item.code]){
+        호차맵[item.code]={호차:'미지정', 순서:''};
+      }
+    });
+  }
+
+  try {
+    await fetch(APPS_SCRIPT_URL,{method:'POST',
+      body:JSON.stringify({action:'saveHocha', 호차맵})});
+  } catch(e){console.error('저장 오류:',e);}
 }
 </script>
 </body>
